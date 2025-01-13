@@ -59,7 +59,7 @@ Stream<BoundValue> _gpsDataStream() async* {
       // Yield latitude and longitude
       yield BoundValue<SingleValue<Map<String, double>>>(
         Source.local,
-        Property.gpsCoordinates,
+        Property.gpsPosition,
         SingleValue({
           'latitude': position.latitude,
           'longitude': position.longitude,
@@ -69,14 +69,14 @@ Stream<BoundValue> _gpsDataStream() async* {
       // Yield Course Over Ground (COG)
       yield BoundValue<SingleValue<double>>(
         Source.local,
-        Property.cog,
+        Property.courseOverGround,
         SingleValue(position.heading), // Heading is equivalent to COG
       );
 
       // Yield Speed Over Ground (SOG)
       yield BoundValue<SingleValue<double>>(
         Source.local,
-        Property.sog,
+        Property.speedOverGround,
         SingleValue(position.speed), // Speed in meters/second
       );
     }
