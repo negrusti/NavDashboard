@@ -126,7 +126,7 @@ class _DrawerContent extends StatelessWidget {
           value: uiSettings.fullScreen,
           onChanged: (value) {
             Navigator.pop(context);
-            uiSettings.fullScreen();
+            uiSettings.toggleFullScreen();
           },
           activeColor: enabledColor,
           checkColor: theme.colorScheme.background,
