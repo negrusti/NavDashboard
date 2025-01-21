@@ -50,35 +50,35 @@ Stream<BoundValue> _gpsDataStream() async* {
         'Location permissions are permanently denied, we cannot request permissions.');
   }
 
-  // Listen to GPS updates
-  Geolocator.getPositionStream(locationSettings: const LocationSettings(
-    accuracy: LocationAccuracy.high,
-    distanceFilter: 10, // Update every 10 meters
-  )).listen((Position position) {
-    if (position != null) {
-      // Yield latitude and longitude
-      yield BoundValue<SingleValue<Map<String, double>>>(
-        Source.local,
-        Property.gpsPosition,
-        SingleValue({
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-        }),
-      );
+  // Use async* to yield values directly from the position stream
+  await for (Position position in Geolocator.getPositionStream(
+    locationSettings: const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 10, // Update every 10 meters
+    ),
+  )) {
+    // Yield latitude and longitude
+    yield BoundValue<SingleValue<Map<String, double>>>(
+      Source.local,
+      Property.gpsPosition,
+      SingleValue({
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+      }),
+    );
 
-      // Yield Course Over Ground (COG)
-      yield BoundValue<SingleValue<double>>(
-        Source.local,
-        Property.courseOverGround,
-        SingleValue(position.heading), // Heading is equivalent to COG
-      );
+    // Yield Course Over Ground (COG)
+    yield BoundValue<SingleValue<double>>(
+      Source.local,
+      Property.courseOverGround,
+      SingleValue(position.heading), // Heading is equivalent to COG
+    );
 
-      // Yield Speed Over Ground (SOG)
-      yield BoundValue<SingleValue<double>>(
-        Source.local,
-        Property.speedOverGround,
-        SingleValue(position.speed), // Speed in meters/second
-      );
-    }
-  });
+    // Yield Speed Over Ground (SOG)
+    yield BoundValue<SingleValue<double>>(
+      Source.local,
+      Property.speedOverGround,
+      SingleValue(position.speed), // Speed in meters/second
+    );
+  }
 }
