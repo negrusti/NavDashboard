@@ -40,7 +40,7 @@ dependencies:
   provider: ^6.0.4
   udp: ^5.0.3
   geolocator: ^10.0.0
-  wakelock: any
+  wakelock_plus: any
 
 dev_dependencies:
   flutter_test:
@@ -52,7 +52,7 @@ dev_dependencies:
   test: ^1.24.0
 
 dependency_overrides:
-  wakelock_windows: null
+  win32: ^5.5.4
 
 flutter:
   # Ensure that the Material Icons font is included.

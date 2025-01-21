@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
-import 'package:wakelock/wakelock.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'state/data_set.dart';
 import 'state/history.dart';
 import 'state/log_set.dart';
@@ -30,7 +30,7 @@ const SystemUiOverlayStyle overlayStyle = SystemUiOverlayStyle(
 
 void main() {
   // TODO: move Wakelock into options
-  Wakelock.enable();
+  WakelockPlus.toggle(enable: true);
   final logSet = LogSet();
   Logger.root.onRecord.listen((record) => logSet.add(record));
   runApp(NmeaDashboardApp(logSet));
