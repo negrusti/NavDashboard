@@ -91,7 +91,7 @@ class _DrawerContent extends StatelessWidget {
             ),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('NMEA Dashboard', style: headingStyle),
+              Text('NavPanel', style: headingStyle),
               Text('Version: ${packageInfo.version}',
                   style: headingStyle.copyWith(fontSize: 18)),
             ])),
@@ -111,9 +111,22 @@ class _DrawerContent extends StatelessWidget {
           title: Text('Always On', style: enabledStyle),
           secondary: Icon(Icons.dark_mode_outlined, color: enabledColor),
           controlAffinity: ListTileControlAffinity.trailing,
-          value: uiSettings.nightMode,
+          value: uiSettings.alwaysOn,
           onChanged: (value) {
             Navigator.pop(context);
+            uiSettings.toggleAlwaysOn();
+          },
+          activeColor: enabledColor,
+          checkColor: theme.colorScheme.background,
+        ),
+        CheckboxListTile(
+          title: Text('Full Screen', style: enabledStyle),
+          secondary: Icon(Icons.dark_mode_outlined, color: enabledColor),
+          controlAffinity: ListTileControlAffinity.trailing,
+          value: uiSettings.fullScreen,
+          onChanged: (value) {
+            Navigator.pop(context);
+            uiSettings.fullScreen();
           },
           activeColor: enabledColor,
           checkColor: theme.colorScheme.background,
