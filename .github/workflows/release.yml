@@ -9,15 +9,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      version: 1.0.0 # Define the version here or dynamically fetch it in a script
-
     steps:
-      # Step 1: Check out the repository
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Flutter environment
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         id: flutter-action
@@ -27,15 +22,19 @@ jobs:
           git config --global --add safe.directory /opt/hostedtoolcache/flutter/${{ steps.flutter-action.outputs.CHANNEL }}-${{ steps.flutter-action.outputs.VERSION }}-${{ steps.flutter-action.outputs.ARCHITECTURE }}
           flutter --version
           
-      # Step 3: Install dependencies
       - name: Install dependencies
         run: flutter pub get
 
-      # Step 4: Build Android APK
       - name: Build APK
         run: flutter build apk --release
 
-      # Step 5: Upload Release Artifact to GitHub
+      - name: Extract Version
+        id: get_version
+        run: |
+          version=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          echo "version=$version" >> $GITHUB_ENV
+          echo "Version extracted: $version"
+
       - name: Upload Release Artifact to GitHub
         uses: ncipollo/release-action@v1
         with:
