@@ -71,7 +71,11 @@ enum Property {
   waterTemperature('Water temperature', 'Water', Dimension.temperature),
   waypointBearing('Bearing to waypoint', 'Wpt Brg', Dimension.bearing),
   waypointRange('Range to waypoint', 'Wpt Rng', Dimension.distance),
-  crossTrackError('Cross track error', 'XTE', Dimension.crossTrackError);
+  crossTrackError('Cross track error', 'XTE', Dimension.crossTrackError),
+  fuel0('Fuel tank 0', 'Fuel 0', Dimension.percentage),
+  fuel1('Fuel tank 1', 'Fuel 1', Dimension.percentage),
+  fuel2('Fuel tank 2', 'Fuel 2', Dimension.percentage),
+  fuel3('Fuel tank 3', 'Fuel 3', Dimension.percentage);
 
   /// A long name suitable for use during selection, e.g. "Speed over ground".
   final String longName;
