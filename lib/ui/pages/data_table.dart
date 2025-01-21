@@ -109,7 +109,7 @@ class _DrawerContent extends StatelessWidget {
         ),
         CheckboxListTile(
           title: Text('Always On', style: enabledStyle),
-          secondary: Icon(Icons.dark_mode_outlined, color: enabledColor),
+          secondary: Icon(Icons.all_inclusive, color: enabledColor),
           controlAffinity: ListTileControlAffinity.trailing,
           value: uiSettings.alwaysOn,
           onChanged: (value) {
@@ -121,7 +121,7 @@ class _DrawerContent extends StatelessWidget {
         ),
         CheckboxListTile(
           title: Text('Full Screen', style: enabledStyle),
-          secondary: Icon(Icons.dark_mode_outlined, color: enabledColor),
+          secondary: Icon(Icons.fullscreen, color: enabledColor),
           controlAffinity: ListTileControlAffinity.trailing,
           value: uiSettings.fullScreen,
           onChanged: (value) {

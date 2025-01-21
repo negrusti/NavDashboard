@@ -18,7 +18,7 @@ class UnsupportedMessageException implements Exception {}
 /// The list of message types that are silently ignored.
 const _ignoredMessages = {
   // Ignore most things related to waypoints and routes except active waypoint.
-  'AAM', 'BOD', 'BWC', 'BRW', 'BWW', 'R00', 'RTE', 'WCV', 'WNC',
+  'AAM', 'BOD', 'BRW', 'BWW', 'R00', 'RTE', 'WCV', 'WNC',
   'WPL', 'XTR', 'WDC', 'WDR', 'WFM', 'WNR',
   // Ignore autopilot control messages.
   'APA', 'APB',
@@ -630,6 +630,10 @@ List<BoundValue> _parseXdrMeasurement(List<String> fields, int startIndex) {
       _validateFieldValue(fields, index: startIndex + 2, expected: 'P');
       final value = double.parse(fields[startIndex + 1]);
       return [_boundSingleValue(value, Property.relativeHumidity, tier: 2)];
+    case 'L-FUEL_0':
+      _validateFieldValue(fields, index: startIndex + 2, expected: 'P');
+      final value = double.parse(fields[startIndex + 1]);
+      return [_boundSingleValue(value, Property.fuel0, tier: 2)];
     default:
       return [];
   }
