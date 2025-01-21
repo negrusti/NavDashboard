@@ -107,6 +107,17 @@ class _DrawerContent extends StatelessWidget {
           activeColor: enabledColor,
           checkColor: theme.colorScheme.background,
         ),
+        CheckboxListTile(
+          title: Text('Always On', style: enabledStyle),
+          secondary: Icon(Icons.dark_mode_outlined, color: enabledColor),
+          controlAffinity: ListTileControlAffinity.trailing,
+          value: uiSettings.nightMode,
+          onChanged: (value) {
+            Navigator.pop(context);
+          },
+          activeColor: enabledColor,
+          checkColor: theme.colorScheme.background,
+        ),
         ListTile(
           leading: Icon(Icons.lan_outlined, color: enabledColor),
           title: Text('Network', style: enabledStyle),
