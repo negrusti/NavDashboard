@@ -38,7 +38,7 @@ enum Property {
   airTemperature('Air temperature', 'Air', Dimension.temperature),
   apparentWindAngle('Apparent wind angle', 'AWA', Dimension.angle),
   apparentWindSpeed('Apparent wind speed', 'AWS', Dimension.speed),
-  courseOverGround('Course over ground', 'COG', Dimension.bearing),
+  courseOverGround('Course over ground', 'COG', Dimension.bearing, sources: {Source.local, Source.network}),
   currentSet('Set', 'Set', Dimension.bearing),
   currentDrift('Drift', 'Drift', Dimension.speed),
   depthWithOffset('Depth', 'Depth', Dimension.depth),
@@ -46,8 +46,8 @@ enum Property {
   dewPoint('Dew point', 'DewPt', Dimension.temperature),
   distanceTotal('Total distance', 'Log', Dimension.distance),
   distanceTrip('Trip distance', 'Trip', Dimension.distance),
-  gpsPosition('GPS position', 'GPS', Dimension.position),
-  gpsHdop('GPS HDOP', 'HDOP', Dimension.depth),
+  gpsPosition('GPS position', 'GPS', Dimension.position, sources: {Source.local, Source.network}),
+  gpsHdop('GPS HDOP', 'HDOP', Dimension.depth, sources: {Source.local, Source.network}),
   heading('Heading', 'Heading', Dimension.bearing),
   // Sometimes a network message can only generate headings in magnetic so use
   // this property. All data elements work with a true heading internally hence
@@ -59,7 +59,7 @@ enum Property {
   relativeHumidity('Relative Humidity', 'RH', Dimension.percentage),
   roll('Roll angle', 'Roll', Dimension.angle),
   rudderAngle('Rudder angle', 'Rudder', Dimension.angle),
-  speedOverGround('Speed over ground', 'SOG', Dimension.speed),
+  speedOverGround('Speed over ground', 'SOG', Dimension.speed, sources: {Source.local, Source.network}),
   speedThroughWater('Speed through water', 'STW', Dimension.speed),
   trueWindAngle('True wind angle', 'TWA', Dimension.angle),
   trueWindDirection('True wind direction', 'TWD', Dimension.bearing),

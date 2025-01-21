@@ -29,8 +29,10 @@ const SystemUiOverlayStyle overlayStyle = SystemUiOverlayStyle(
 );
 
 void main() {
-  // TODO: move Wakelock into options
+  // TODO: move Wakelock and Full Screen Mode into options
   WakelockPlus.toggle(enable: true);
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  
   final logSet = LogSet();
   Logger.root.onRecord.listen((record) => logSet.add(record));
   runApp(NmeaDashboardApp(logSet));
