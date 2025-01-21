@@ -42,7 +42,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: v${{ env.version }}
           name: Nav Dashboard v${{ env.version }}
-          artifacts: "build/app/outputs/flutter-apk/app-release.apk"
+          artifacts: "build/app/outputs/flutter-apk/app-release-unsigned.apk"
           artifactContentType: application/vnd.android.package-archive
           draft: false
           prerelease: false
