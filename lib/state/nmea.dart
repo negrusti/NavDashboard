@@ -210,6 +210,7 @@ void _validateChecksum(payload, checksumString) {
 List<BoundValue> _createNmeaValues(String type, List<String> fields) {
   switch (type) {
     case 'BWR':
+    case 'BWC':
       _validateMinFieldCount(fields, 12);
       _validateFieldValue(fields, index: 6, expected: 'T');
       _validateFieldValue(fields, index: 10, expected: 'N');
