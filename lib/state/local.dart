@@ -89,18 +89,19 @@ Stream<BoundValue> _pressureDataStream() {
     double? barometricPressure;
 
     try {
-      // Listen to pressure events and get the latest pressure value
-      final pressureEvent = await pressureEvents.first;
-      barometricPressure = pressureEvent.pressure;
+      // Get the latest pressure event
+      final barometerEvent = await barometerEvents.first;
+      barometricPressure = barometerEvent.pressure;
     } catch (e) {
       throw Exception('Error accessing barometer data: $e');
     }
 
-    // Return the BoundValue with the pressure data
+    // Return the pressure as a BoundValue
     return BoundValue<SingleValue<double>>(
       Source.local,
-      Property.pressure,
-      SingleValue(barometricPressure ?? 0.0), // Default to 0.0 if no data
+      Property.barometricPressure,
+      SingleValue(barometricPressure ?? 0.0), // Default to 0.0 if null
     );
-  }).asyncMap((event) async => await event);
+  }).asyncMap((event) async => await event); // Handle the async result
 }
+
