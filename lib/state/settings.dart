@@ -283,6 +283,7 @@ class UiSettings with ChangeNotifier {
 
   void setAlwaysOn(bool alwaysOn) {
     _alwaysOn.set(alwaysOn);
+    WakelockPlus.toggle(enable: alwaysOn);
     notifyListeners();
   }
 

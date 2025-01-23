@@ -30,8 +30,8 @@ const SystemUiOverlayStyle overlayStyle = SystemUiOverlayStyle(
 
 void main() {
   // TODO: move Wakelock and Full Screen Mode into options
-  WakelockPlus.toggle(enable: true);
   WidgetsFlutterBinding.ensureInitialized();
+  WakelockPlus.toggle(enable: true);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   
   final logSet = LogSet();
