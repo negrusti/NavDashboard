@@ -99,7 +99,7 @@ Stream<BoundValue> _pressureDataStream() {
     // Return the pressure as a BoundValue
     return BoundValue<SingleValue<double>>(
       Source.local,
-      Property.barometricPressure,
+      Property.pressure,
       SingleValue(barometricPressure ?? 0.0), // Default to 0.0 if null
     );
   }).asyncMap((event) async => await event); // Handle the async result
