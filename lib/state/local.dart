@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:async/async.dart';
 import 'package:nmea_dashboard/state/values.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'common.dart';
 
 const _interval = Duration(seconds: 1);
@@ -84,24 +85,23 @@ Stream<BoundValue> _gpsDataStream() {
 }
 
 Stream<BoundValue> _pressureDataStream() {
-  final sensorManager = SensorManager();
-
+  // Access the barometer sensor stream
   return Stream.periodic(_interval, (_) async {
-    // Initialize the barometric pressure sensor
-    final sensor = await sensorManager.getDefaultSensor(SensorType.PRESSURE);
+    // Retrieve pressure data from sensors_plus
+    double? barometricPressure;
 
-    if (sensor == null) {
-      throw Exception('Pressure sensor not available on this device.');
+    try {
+      // Listen to the barometer readings
+      barometricPressure = await barometerEvents.first.then((event) => event.pressure);
+    } catch (e) {
+      throw Exception('Error accessing barometer data: $e');
     }
 
-    // Get the latest pressure reading from the sensor
-    final pressureStream = sensorManager.getSensorStream(sensor);
-    final pressure = await pressureStream.first;
-
+    // Ensure we return a BoundValue for the pressure
     return BoundValue<SingleValue<double>>(
       Source.local,
       Property.barometricPressure,
-      SingleValue(pressure), // Pressure in hPa (hectopascals)
+      SingleValue(barometricPressure ?? 0.0), // Default to 0.0 if null
     );
-  }).asyncMap((event) async => await event); // Ensure we handle futures inside the periodic stream
+  }).asyncMap((event) async => await event); // Resolve futures in the periodic stream
 }
