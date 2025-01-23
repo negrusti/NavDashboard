@@ -28,7 +28,7 @@ Stream<BoundValue> valuesFromLocalDevice() {
     _gpsDataStream(),
 
     // Barometric pressure stream
-    _pressureDataStream(),    
+    // _pressureDataStream(),    
   ]);
 }
 
@@ -84,6 +84,7 @@ Stream<BoundValue> _gpsDataStream() {
       .expand((values) => values); // Flatten the list of BoundValue into individual stream events
 }
 
+/*
 Stream<BoundValue> _pressureDataStream() {
   return Stream.periodic(_interval, (_) async {
     double? barometricPressure;
@@ -104,4 +105,4 @@ Stream<BoundValue> _pressureDataStream() {
     );
   }).asyncMap((event) async => await event); // Handle the async result
 }
-
+*/
