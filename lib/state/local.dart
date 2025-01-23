@@ -85,23 +85,22 @@ Stream<BoundValue> _gpsDataStream() {
 }
 
 Stream<BoundValue> _pressureDataStream() {
-  // Access the barometer sensor stream
   return Stream.periodic(_interval, (_) async {
-    // Retrieve pressure data from sensors_plus
     double? barometricPressure;
 
     try {
-      // Listen to the barometer readings
-      barometricPressure = await barometerEvents.first.then((event) => event.pressure);
+      // Listen to pressure events and get the latest pressure value
+      final pressureEvent = await pressureEvents.first;
+      barometricPressure = pressureEvent.pressure;
     } catch (e) {
       throw Exception('Error accessing barometer data: $e');
     }
 
-    // Ensure we return a BoundValue for the pressure
+    // Return the BoundValue with the pressure data
     return BoundValue<SingleValue<double>>(
       Source.local,
-      Property.barometricPressure,
-      SingleValue(barometricPressure ?? 0.0), // Default to 0.0 if null
+      Property.pressure,
+      SingleValue(barometricPressure ?? 0.0), // Default to 0.0 if no data
     );
-  }).asyncMap((event) async => await event); // Resolve futures in the periodic stream
+  }).asyncMap((event) async => await event);
 }
