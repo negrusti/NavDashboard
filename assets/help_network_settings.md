@@ -8,6 +8,10 @@ device sending the NMEA data.
 
 * **Mode**: Either listen for broadcast UDP packets, or connect to a TCP port.
 
+* **Protocol**: Choose whether the incoming data is ASCII NMEA 0183 sentences
+  or binary NMEA 2000 assembled packets. Use the NMEA 2000 option for gateways
+  that forward complete PGNs over UDP instead of converting them to 0183 text.
+
 * **IP Address**: Which IP address to connect to (only used when Mode is
   "Connect to TCP port").
 
@@ -20,7 +24,8 @@ device sending the NMEA data.
   assumed to be corrupted and are ignored. When "require checksum" is off,
   messages without a checksum are used if possible. You may need to turn off
   "require checksum" if a device on your network does not generate checksums but
-  doing so will potentially allow corrupted data.
+  doing so will potentially allow corrupted data. This setting only applies to
+  NMEA 0183.
 
 * **Staleness**: The time to wait before removing old data from the display and
   replacing it with dashes. For example, if a depth has not been recieved for

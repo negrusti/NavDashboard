@@ -23,7 +23,7 @@ final _log = Logger('Network');
 /// (potentially null) values at least every _timeout seconds even if no network
 /// traffic is present to enable cancelling.
 Stream<BoundValue?> valuesFromNetwork(NetworkSettings settings) {
-  NmeaParser parser = NmeaParser(settings.requireChecksum);
+  NmeaParser parser = NmeaParser(settings.requireChecksum, settings.protocol);
   switch (settings.mode) {
     case NetworkMode.tcpConnect:
       return _valuesFromTcpConnect(settings.ipAddress, settings.port, parser);
@@ -99,6 +99,13 @@ Stream<Uint8List> _periodicEmptyPackets() {
 /// enable cancelling.
 Stream<BoundValue?> _valuesFromPackets(
     Stream<Uint8List> packetStream, NmeaParser parser) async* {
+  if (parser.protocol == NetworkProtocol.nmea2000Assembled) {
+    await for (final value in _valuesFromNmea2000Packets(packetStream, parser)) {
+      yield value;
+    }
+    return;
+  }
+
   var remaining = '';
   await for (final packet
       in StreamGroup.merge([packetStream, _periodicEmptyPackets()])) {
@@ -129,6 +136,25 @@ Stream<BoundValue?> _valuesFromPackets(
           }
         }
       }
+    }
+  }
+}
+
+Stream<BoundValue?> _valuesFromNmea2000Packets(
+    Stream<Uint8List> packetStream, NmeaParser parser) async* {
+  await for (final packet
+      in StreamGroup.merge([packetStream, _periodicEmptyPackets()])) {
+    parser.logAndClearIfNeeded();
+    if (packet.isEmpty) {
+      yield null;
+      continue;
+    }
+    try {
+      for (final value in parser.parsePacket(packet)) {
+        yield value;
+      }
+    } on FormatException catch (e) {
+      _log.warning('Error parsing NMEA2000 packet: ${e.message}');
     }
   }
 }

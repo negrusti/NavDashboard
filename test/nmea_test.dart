@@ -2,8 +2,11 @@
 // This software may be modified and distributed under the terms
 // of the MIT license. See the LICENCE.md file for details.
 
+import 'dart:typed_data';
+
 import 'package:nmea_dashboard/state/common.dart';
 import 'package:nmea_dashboard/state/nmea.dart';
+import 'package:nmea_dashboard/state/settings.dart';
 import 'package:nmea_dashboard/state/values.dart';
 import 'package:test/test.dart';
 
@@ -19,6 +22,46 @@ BoundValue<DoubleValue<T>> _boundDoubleValue<T>(
     {int tier = 1}) {
   return BoundValue(Source.network, property, DoubleValue(first, second),
       tier: tier);
+}
+
+Uint8List _makeNmea2000Packet(int pgn, List<int> payload,
+    {int source = 0x23, int priority = 3}) {
+  final pf = (pgn >> 8) & 0xFF;
+  final dp = (pgn >> 16) & 0x01;
+  final ps = (pf < 0xF0) ? 0xFF : (pgn & 0xFF);
+  final canId =
+      (priority << 26) | (dp << 24) | (pf << 16) | (ps << 8) | source;
+  final bytes = Uint8List(payload.length + 6);
+  final data = ByteData.sublistView(bytes);
+  data.setUint32(0, canId, Endian.little);
+  bytes[4] = 0xFF;
+  bytes[5] = payload.length;
+  bytes.setRange(6, bytes.length, payload);
+  return bytes;
+}
+
+List<int> _u16(int value) {
+  final bytes = Uint8List(2);
+  ByteData.sublistView(bytes).setUint16(0, value, Endian.little);
+  return bytes;
+}
+
+List<int> _i16(int value) {
+  final bytes = Uint8List(2);
+  ByteData.sublistView(bytes).setInt16(0, value, Endian.little);
+  return bytes;
+}
+
+List<int> _u32(int value) {
+  final bytes = Uint8List(4);
+  ByteData.sublistView(bytes).setUint32(0, value, Endian.little);
+  return bytes;
+}
+
+List<int> _i32(int value) {
+  final bytes = Uint8List(4);
+  ByteData.sublistView(bytes).setInt32(0, value, Endian.little);
+  return bytes;
 }
 
 void main() {
@@ -370,6 +413,81 @@ void main() {
         BoundValueListMatches([
           _boundSingleValue(
               DateTime.utc(2022, 10, 15, 17, 15, 41), Property.utcTime),
+        ]));
+  });
+
+  test('should parse NMEA2000 vessel heading packet', () {
+    final packet = _makeNmea2000Packet(127250, [
+      0x01,
+      ..._u16(15708),
+      ..._i16(0x7FFF),
+      ..._i16(-349),
+      0x00,
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([
+          _boundSingleValue(-1.9996, Property.variation),
+          _boundSingleValue(90.0002, Property.heading),
+        ]));
+  });
+
+  test('should parse NMEA2000 COG/SOG packet', () {
+    final packet = _makeNmea2000Packet(129026, [
+      0x02,
+      0x00,
+      ..._u16(47124),
+      ..._u16(520),
+      0xFF,
+      0xFF,
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([
+          _boundSingleValue(270.0017, Property.courseOverGround, tier: 2),
+          _boundSingleValue(5.2, Property.speedOverGround, tier: 2),
+        ]));
+  });
+
+  test('should parse NMEA2000 water depth packet', () {
+    final packet = _makeNmea2000Packet(128267, [
+      0x03,
+      ..._u32(1234),
+      ..._i16(-500),
+      0xFF,
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([
+          _boundSingleValue(12.34, Property.depthUncalibrated),
+          _boundSingleValue(11.84, Property.depthWithOffset),
+        ]));
+  });
+
+  test('should parse NMEA2000 rapid position packet', () {
+    final packet = _makeNmea2000Packet(129025, [
+      ..._i32(375000000),
+      ..._i32(-1225000000),
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([
+          _boundDoubleValue(37.5, -122.5, Property.gpsPosition, tier: 2),
+        ]));
+  });
+
+  test('should parse NMEA2000 apparent wind packet', () {
+    final packet = _makeNmea2000Packet(130306, [
+      0x04,
+      ..._u16(1020),
+      ..._u16(7854),
+      0x02,
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([
+          _boundSingleValue(45.0001, Property.apparentWindAngle),
+          _boundSingleValue(10.2, Property.apparentWindSpeed),
         ]));
   });
 }

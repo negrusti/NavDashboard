@@ -3,11 +3,13 @@
 // of the MIT license. See the LICENCE.md file for details.
 
 import 'dart:collection';
+import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
+import 'package:nmea_dashboard/state/settings.dart';
 import 'package:nmea_dashboard/state/values.dart';
 
 import 'common.dart';
@@ -80,10 +82,13 @@ class NmeaParser {
   @visibleForTesting
   final emptyCounts = MessageCounts();
   final bool _requireChecksum;
+  final NetworkProtocol protocol;
   DateTime _lastLog;
 
   /// Constructs a new parser for NMEA messages
-  NmeaParser(this._requireChecksum) : _lastLog = DateTime.now();
+  NmeaParser(this._requireChecksum,
+      [this.protocol = NetworkProtocol.nmea0183])
+      : _lastLog = DateTime.now();
 
   /// Logs the current message counts then resets them if sufficient time has
   /// passed since the last log.
@@ -130,6 +135,9 @@ class NmeaParser {
   /// unsupported message or a message with no data is received.
   /// If requireChecksum is true messages without a checksum are rejected.
   List<BoundValue> parseString(String string) {
+    if (protocol != NetworkProtocol.nmea0183) {
+      throw const FormatException('Protocol expects binary NMEA2000 packets');
+    }
     if (string.startsWith('!')) {
       // Silently discard the encapsulated (e.g. AIS) sentences which are often
       // on the network.
@@ -185,6 +193,465 @@ class NmeaParser {
 
     successCounts.increment(type);
     return values;
+  }
+
+  /// Attempts to parse a binary NMEA2000 assembled packet.
+  List<BoundValue> parsePacket(Uint8List packet) {
+    if (protocol != NetworkProtocol.nmea2000Assembled) {
+      throw const FormatException('Protocol expects ASCII NMEA0183 sentences');
+    }
+    if (packet.length < 6) {
+      throw const FormatException('Packet is shorter than the 6-byte header');
+    }
+
+    final byteData = ByteData.sublistView(packet);
+    final canId = byteData.getUint32(0, Endian.little);
+    final payloadLength = packet[5];
+    final expectedLength = payloadLength + 6;
+    if (payloadLength < 1) {
+      throw const FormatException('Packet payload length was zero');
+    }
+    if (packet.length < expectedLength) {
+      throw FormatException(
+          'Packet was truncated, expected $expectedLength bytes and got ${packet.length}');
+    }
+
+    final payload = Uint8List.sublistView(packet, 6, expectedLength);
+    final pgn = _extractPgn(canId);
+
+    late final List<BoundValue> values;
+    try {
+      values = _createNmea2000Values(pgn, payload);
+    } on UnsupportedMessageException {
+      if (unsupportedCounts.increment(pgn.toString()) <= 1) {
+        throw FormatException('Unsupported PGN $pgn');
+      }
+      return [];
+    }
+
+    if (values.isEmpty) {
+      if (emptyCounts.increment(pgn.toString()) <= 1) {
+        throw FormatException('No data found in PGN $pgn');
+      }
+      return [];
+    }
+
+    successCounts.increment(pgn.toString());
+    return values;
+  }
+}
+
+int _extractPgn(int canId) {
+  final pf = (canId >> 16) & 0xFF;
+  final dp = (canId >> 24) & 0x01;
+  final ps = (canId >> 8) & 0xFF;
+  return (dp << 16) | (pf << 8) | ((pf < 0xF0) ? 0 : ps);
+}
+
+List<BoundValue> _createNmea2000Values(int pgn, Uint8List payload) {
+  switch (pgn) {
+    case 127245:
+      _validatePayloadLength(payload, 8);
+      return [
+        _parseN2kAngle16(payload, 1, Property.rudderAngle),
+      ].whereNotNull().toList();
+    case 127250:
+      _validatePayloadLength(payload, 8);
+      final heading = _readUint16(payload, 1);
+      final variation = _readInt16(payload, 5);
+      final reference = payload[7] & 0x03;
+      final headingDegrees = _uint16RadiansToDegrees(heading);
+      final variationDegrees =
+          (variation == null) ? null : _signedRadiansToDegrees(variation, 0.0001);
+      final values = <BoundValue>[];
+      if (variationDegrees != null) {
+        values.add(_boundSingleValue(variationDegrees, Property.variation));
+      }
+      if (headingDegrees != null) {
+        if (reference == 0) {
+          values.add(_boundSingleValue(headingDegrees, Property.heading));
+        } else if (reference == 1) {
+          values.add(_boundSingleValue(headingDegrees, Property.headingMag));
+        }
+      }
+      return values;
+    case 127251:
+      _validatePayloadLength(payload, 8);
+      final raw = _readInt32(payload, 1);
+      if (raw == null) {
+        return [];
+      }
+      return [
+        _boundSingleValue(raw * 3.125e-08 * radiansToDegrees,
+            Property.rateOfTurn),
+      ];
+    case 127258:
+      _validatePayloadLength(payload, 8);
+      return [
+        _parseN2kAngle16(payload, 5, Property.variation),
+      ].whereNotNull().toList();
+    case 128259:
+      _validatePayloadLength(payload, 8);
+      return [
+        _parseN2kSpeed16(payload, 1, Property.speedThroughWater),
+      ].whereNotNull().toList();
+    case 128267:
+      _validatePayloadLength(payload, 8);
+      final depthRaw = _readUint32(payload, 1);
+      final offsetRaw = _readInt16(payload, 5);
+      if (depthRaw == null) {
+        return [];
+      }
+      final depth = depthRaw * 0.01;
+      final values = <BoundValue>[
+        _boundSingleValue(depth, Property.depthUncalibrated),
+      ];
+      if (offsetRaw != null) {
+        values.add(
+            _boundSingleValue(depth + (offsetRaw * 0.001), Property.depthWithOffset));
+      } else {
+        values.add(_boundSingleValue(depth, Property.depthWithOffset));
+      }
+      return values;
+    case 128275:
+      _validatePayloadLength(payload, 14);
+      return [
+        _parseN2kDistance32(payload, 6, Property.distanceTotal),
+        _parseN2kDistance32(payload, 10, Property.distanceTrip),
+      ].whereNotNull().toList();
+    case 129025:
+      _validatePayloadLength(payload, 8);
+      final lat = _readInt32(payload, 0);
+      final long = _readInt32(payload, 4);
+      if (lat == null || long == null) {
+        return [];
+      }
+      return [
+        _boundDoubleValue(lat * 1e-7, long * 1e-7, Property.gpsPosition,
+            tier: 2),
+      ];
+    case 129026:
+      _validatePayloadLength(payload, 8);
+      final reference = payload[1] & 0x03;
+      final cog = _uint16RadiansToDegrees(_readUint16(payload, 2));
+      final sogRaw = _readUint16(payload, 4);
+      final values = <BoundValue>[];
+      final trueCog = _normalizeBearingDegrees(_toTrueReference(cog, reference));
+      if (trueCog != null) {
+        values.add(_boundSingleValue(trueCog, Property.courseOverGround, tier: 2));
+      }
+      if (sogRaw != null) {
+        values.add(
+            _boundSingleValue(sogRaw * 0.01, Property.speedOverGround, tier: 2));
+      }
+      return values;
+    case 129029:
+      _validatePayloadLength(payload, 31);
+      final days = _readUint16(payload, 1);
+      final seconds = _readUint32(payload, 3);
+      final lat = _readInt64(payload, 7, 8);
+      final long = _readInt64(payload, 15, 8);
+      final values = <BoundValue>[];
+      if (lat != null && long != null) {
+        values.add(_boundDoubleValue(
+            lat * 1e-16, long * 1e-16, Property.gpsPosition,
+            tier: 1));
+      }
+      if (days != null && seconds != null) {
+        final dt = DateTime.utc(1970, 1, 1)
+            .add(Duration(days: days, microseconds: seconds * 100));
+        values.add(_boundSingleValue(dt, Property.utcTime, tier: 1));
+      }
+      final hdop = (payload.length >= 35) ? _readUint16(payload, 33) : null;
+      if (hdop != null) {
+        values.add(_boundSingleValue(hdop * 0.01, Property.gpsHdop));
+      }
+      return values;
+    case 129283:
+      _validatePayloadLength(payload, 8);
+      return [
+        _parseN2kDistanceSigned32(payload, 1, Property.crossTrackError),
+      ].whereNotNull().toList();
+    case 129284:
+      _validatePayloadLength(payload, 34);
+      final reference = payload[5] & 0x03;
+      final values = <BoundValue?>[
+        _parseN2kDistance32(payload, 1, Property.waypointRange, tier: 2),
+      ].whereNotNull().toList();
+      final bearing = _uint16RadiansToDegrees(_readUint16(payload, 14));
+      final trueBearing =
+          _normalizeBearingDegrees(_toTrueReference(bearing, reference));
+      if (trueBearing != null) {
+        values.add(
+            _boundSingleValue(trueBearing, Property.waypointBearing, tier: 2));
+      }
+      return values;
+    case 129291:
+      _validatePayloadLength(payload, 8);
+      final reference = payload[1] & 0x03;
+      final set = _uint16RadiansToDegrees(_readUint16(payload, 2));
+      final trueSet = _normalizeBearingDegrees(_toTrueReference(set, reference));
+      final driftRaw = _readUint16(payload, 4);
+      final values = <BoundValue>[];
+      if (trueSet != null) {
+        values.add(_boundSingleValue(trueSet, Property.currentSet));
+      }
+      if (driftRaw != null) {
+        values.add(_boundSingleValue(driftRaw * 0.01, Property.currentDrift));
+      }
+      return values;
+    case 130306:
+      _validatePayloadLength(payload, 6);
+      final speedRaw = _readUint16(payload, 1);
+      final angle = _uint16RadiansToDegrees(_readUint16(payload, 3));
+      final reference = payload[5] & 0x07;
+      if (speedRaw == null || angle == null) {
+        return [];
+      }
+      switch (reference) {
+        case 2:
+          return [
+            _boundSingleValue(angle, Property.apparentWindAngle),
+            _boundSingleValue(speedRaw * 0.01, Property.apparentWindSpeed),
+          ];
+        case 3:
+          return [
+            _boundSingleValue(angle, Property.trueWindAngle),
+            _boundSingleValue(speedRaw * 0.01, Property.trueWindSpeed),
+          ];
+        case 0:
+        case 1:
+        case 4:
+          final direction =
+              _normalizeBearingDegrees(_toTrueReference(angle, reference == 1 ? 1 : 0));
+          if (direction == null) {
+            return [];
+          }
+          return [
+            _boundSingleValue(direction, Property.trueWindDirection),
+            _boundSingleValue(speedRaw * 0.01, Property.trueWindSpeed, tier: 2),
+          ];
+        default:
+          return [];
+      }
+    case 130310:
+      _validatePayloadLength(payload, 8);
+      return [
+        _parseN2kTemperatureScaled16(payload, 2, 0.01, Property.waterTemperature),
+        _parseN2kTemperatureScaled16(payload, 4, 0.01, Property.airTemperature),
+        _parseN2kPressureScaled16(payload, 6, 100, Property.pressure),
+      ].whereNotNull().toList();
+    case 130312:
+    case 130316:
+      _validatePayloadLength(payload, 8);
+      final source = payload[2];
+      final temperature = _readUint24(payload, 3);
+      if (temperature == null) {
+        return [];
+      }
+      final celsius = (temperature * 0.001) - kelvinToCelcius;
+      switch (source) {
+        case 0:
+          return [_boundSingleValue(celsius, Property.waterTemperature)];
+        case 1:
+          return [_boundSingleValue(celsius, Property.airTemperature)];
+        case 9:
+          return [_boundSingleValue(celsius, Property.dewPoint)];
+        default:
+          return [];
+      }
+    case 130313:
+      _validatePayloadLength(payload, 8);
+      final humidity = _readUint16(payload, 3);
+      if (humidity == null) {
+        return [];
+      }
+      return [
+        _boundSingleValue(humidity * 0.004, Property.relativeHumidity),
+      ];
+    case 130314:
+      _validatePayloadLength(payload, 8);
+      if (payload[2] != 0) {
+        return [];
+      }
+      return [
+        _parseN2kPressureScaled32(payload, 3, 0.1, Property.pressure),
+      ].whereNotNull().toList();
+    case 127505:
+      _validatePayloadLength(payload, 8);
+      final instance = payload[0] & 0x0F;
+      final fluidType = (payload[0] >> 4) & 0x0F;
+      final level = _readInt16(payload, 1);
+      if (fluidType != 0 || level == null || level < 0) {
+        return [];
+      }
+      final property = _fuelPropertyForInstance(instance);
+      if (property == null) {
+        return [];
+      }
+      return [
+        _boundSingleValue(level * 0.004, property, tier: 2),
+      ];
+    default:
+      throw UnsupportedMessageException();
+  }
+}
+
+const double radiansToDegrees = 180.0 / 3.1415926535897932;
+const double kelvinToCelcius = 273.15;
+
+void _validatePayloadLength(Uint8List payload, int minimumLength) {
+  if (payload.length < minimumLength) {
+    throw FormatException(
+        'Expected at least $minimumLength payload bytes, found ${payload.length}');
+  }
+}
+
+int? _readUint16(Uint8List payload, int offset) {
+  final value = ByteData.sublistView(payload).getUint16(offset, Endian.little);
+  return (value >= 0xFFFE) ? null : value;
+}
+
+int? _readInt16(Uint8List payload, int offset) {
+  final value = ByteData.sublistView(payload).getInt16(offset, Endian.little);
+  return (value >= 0x7FFD) ? null : value;
+}
+
+int? _readUint24(Uint8List payload, int offset) {
+  final value =
+      payload[offset] | (payload[offset + 1] << 8) | (payload[offset + 2] << 16);
+  return (value >= 0xFFFFFE) ? null : value;
+}
+
+int? _readUint32(Uint8List payload, int offset) {
+  final value = ByteData.sublistView(payload).getUint32(offset, Endian.little);
+  return (value >= 0xFFFFFFFE) ? null : value;
+}
+
+int? _readInt32(Uint8List payload, int offset) {
+  final value = ByteData.sublistView(payload).getInt32(offset, Endian.little);
+  return (value >= 0x7FFFFFFD) ? null : value;
+}
+
+int? _readInt64(Uint8List payload, int offset, int length) {
+  int raw = 0;
+  for (int i = 0; i < length; i++) {
+    raw |= payload[offset + i] << (8 * i);
+  }
+  final signBit = 1 << ((length * 8) - 1);
+  if (raw >= ((1 << (length * 8)) - 2)) {
+    return null;
+  }
+  if ((raw & signBit) != 0) {
+    raw -= 1 << (length * 8);
+  }
+  return raw;
+}
+
+double? _uint16RadiansToDegrees(int? raw) {
+  return (raw == null) ? null : (raw * 0.0001 * radiansToDegrees);
+}
+
+double _signedRadiansToDegrees(int raw, double scale) {
+  return raw * scale * radiansToDegrees;
+}
+
+double? _normalizeBearingDegrees(double? degrees) {
+  if (degrees == null) {
+    return null;
+  }
+  final normalized = degrees % 360.0;
+  return (normalized < 0) ? normalized + 360.0 : normalized;
+}
+
+double? _toTrueReference(double? degrees, int reference) {
+  switch (reference) {
+    case 0:
+      return degrees;
+    case 1:
+      return null;
+    default:
+      return null;
+  }
+}
+
+BoundValue<SingleValue<double>>? _parseN2kAngle16(
+    Uint8List payload, int offset, Property property,
+    {int tier = 1}) {
+  final raw = _readInt16(payload, offset);
+  if (raw == null) {
+    return null;
+  }
+  return _boundSingleValue(_signedRadiansToDegrees(raw, 0.0001), property,
+      tier: tier);
+}
+
+BoundValue<SingleValue<double>>? _parseN2kSpeed16(
+    Uint8List payload, int offset, Property property,
+    {int tier = 1}) {
+  final raw = _readUint16(payload, offset);
+  return (raw == null)
+      ? null
+      : _boundSingleValue(raw * 0.01, property, tier: tier);
+}
+
+BoundValue<SingleValue<double>>? _parseN2kDistance32(
+    Uint8List payload, int offset, Property property,
+    {int tier = 1}) {
+  final raw = _readUint32(payload, offset);
+  return (raw == null)
+      ? null
+      : _boundSingleValue(raw * 0.01, property, tier: tier);
+}
+
+BoundValue<SingleValue<double>>? _parseN2kDistanceSigned32(
+    Uint8List payload, int offset, Property property,
+    {int tier = 1}) {
+  final raw = _readInt32(payload, offset);
+  return (raw == null)
+      ? null
+      : _boundSingleValue(raw * 0.01, property, tier: tier);
+}
+
+BoundValue<SingleValue<double>>? _parseN2kTemperatureScaled16(
+    Uint8List payload, int offset, double scale, Property property,
+    {int tier = 1}) {
+  final raw = _readUint16(payload, offset);
+  return (raw == null)
+      ? null
+      : _boundSingleValue((raw * scale) - kelvinToCelcius, property, tier: tier);
+}
+
+BoundValue<SingleValue<double>>? _parseN2kPressureScaled16(
+    Uint8List payload, int offset, double scale, Property property,
+    {int tier = 1}) {
+  final raw = _readUint16(payload, offset);
+  return (raw == null)
+      ? null
+      : _boundSingleValue(raw * scale, property, tier: tier);
+}
+
+BoundValue<SingleValue<double>>? _parseN2kPressureScaled32(
+    Uint8List payload, int offset, double scale, Property property,
+    {int tier = 1}) {
+  final raw = _readInt32(payload, offset);
+  return (raw == null)
+      ? null
+      : _boundSingleValue(raw * scale, property, tier: tier);
+}
+
+Property? _fuelPropertyForInstance(int instance) {
+  switch (instance) {
+    case 0:
+      return Property.fuel0;
+    case 1:
+      return Property.fuel1;
+    case 2:
+      return Property.fuel2;
+    case 3:
+      return Property.fuel3;
+    default:
+      return null;
   }
 }
 

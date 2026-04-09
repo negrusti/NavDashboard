@@ -36,6 +36,7 @@ class _NetworkSettingsFormState
   late int _portNum;
   late InternetAddress _ipAddress;
   late NetworkMode _mode;
+  late NetworkProtocol _protocol;
   late bool _requireChecksum;
   late Duration _staleness;
 
@@ -44,6 +45,7 @@ class _NetworkSettingsFormState
     _ipAddress = widget._settings.ipAddress;
     _portNum = widget._settings.port;
     _mode = widget._settings.mode;
+    _protocol = widget._settings.protocol;
     _requireChecksum = widget._settings.requireChecksum;
     _staleness = widget._settings.staleness;
     super.initState();
@@ -60,6 +62,7 @@ class _NetworkSettingsFormState
               Expanded(
                   child: ListView(children: [
                 _buildModeField(),
+                _buildProtocolField(),
                 _buildIpField(),
                 _buildPortField(),
                 _buildRequireChecksumField(),
@@ -68,6 +71,7 @@ class _NetworkSettingsFormState
               buildSaveButton(postSaver: () {
                 widget._settings.set(
                     mode: _mode,
+                    protocol: _protocol,
                     port: _portNum,
                     ipAddress: _ipAddress,
                     requireChecksum: _requireChecksum,
@@ -92,6 +96,26 @@ class _NetworkSettingsFormState
           // Setting state lets us change enable on the IP field.
           if (value != null) {
             _mode = value;
+          }
+        });
+      },
+    );
+  }
+
+  Widget _buildProtocolField() {
+    buildItem(NetworkProtocol protocol) =>
+        DropdownEntry(value: protocol, text: protocol.description);
+    return buildDropdownBox(
+      label: 'Protocol',
+      items: [
+        buildItem(NetworkProtocol.nmea0183),
+        buildItem(NetworkProtocol.nmea2000Assembled),
+      ],
+      initialValue: _protocol,
+      onChanged: (value) {
+        setState(() {
+          if (value != null) {
+            _protocol = value;
           }
         });
       },

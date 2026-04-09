@@ -153,6 +153,7 @@ List<T>? _validateJsonList<T>(
 /// Settings for interaction with the network.
 class NetworkSettings with ChangeNotifier {
   final _PrefMappedValue<int, NetworkMode> _mode;
+  final _PrefMappedValue<int, NetworkProtocol> _protocol;
   final _PrefMappedValue<String, InternetAddress> _ipAddress;
   final _PrefValue<int> _port;
   final _PrefValue<bool> _requireChecksum;
@@ -167,9 +168,17 @@ class NetworkSettings with ChangeNotifier {
                 ? NetworkMode.values[p]
                 : NetworkMode.udpListen,
             (n) => n.index),
-        _ipAddress = _PrefMappedValue(
+        _protocol = _PrefMappedValue(
             prefs,
-            'network_address',
+            'network_protocol',
+            NetworkProtocol.nmea0183,
+            (p) => (p >= 0 && p < NetworkProtocol.values.length)
+                ? NetworkProtocol.values[p]
+                : NetworkProtocol.nmea0183,
+            (n) => n.index),
+        _ipAddress = _PrefMappedValue(
+              prefs,
+              'network_address',
             InternetAddress("192.168.4.1"),
             (p) => InternetAddress(p),
             (n) => n.address),
@@ -184,6 +193,7 @@ class NetworkSettings with ChangeNotifier {
         );
 
   NetworkMode get mode => _mode.value;
+  NetworkProtocol get protocol => _protocol.value;
   InternetAddress get ipAddress => _ipAddress.value;
   int get port => _port.value;
   bool get requireChecksum => _requireChecksum.value;
@@ -191,12 +201,16 @@ class NetworkSettings with ChangeNotifier {
 
   void set(
       {NetworkMode? mode,
+      NetworkProtocol? protocol,
       int? port,
       InternetAddress? ipAddress,
       bool? requireChecksum,
       Duration? staleness}) {
     if (mode != null) {
       _mode.set(mode);
+    }
+    if (protocol != null) {
+      _protocol.set(protocol);
     }
     if (port != null) {
       _port.set(port);
@@ -221,6 +235,14 @@ enum NetworkMode {
 
   final String description;
   const NetworkMode(this.description);
+}
+
+enum NetworkProtocol {
+  nmea0183('NMEA 0183 sentences'),
+  nmea2000Assembled('NMEA 2000 assembled packets');
+
+  final String description;
+  const NetworkProtocol(this.description);
 }
 
 /// Settings for the user interface style.
