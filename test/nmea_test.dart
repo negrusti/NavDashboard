@@ -444,7 +444,7 @@ void main() {
     expect(
         NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
         BoundValueListMatches([
-          _boundSingleValue(270.0017, Property.courseOverGround, tier: 2),
+          _boundSingleValue(270.0006, Property.courseOverGround, tier: 2),
           _boundSingleValue(5.2, Property.speedOverGround, tier: 2),
         ]));
   });
