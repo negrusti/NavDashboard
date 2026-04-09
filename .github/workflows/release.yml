@@ -40,16 +40,35 @@ jobs:
         id: get_version
         run: |
           version=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          version_name="${version%%+*}"
+          build_number="${version#*+}"
+          if [ "$build_number" = "$version" ]; then
+            release_tag="v$version_name"
+          else
+            release_tag="v${version_name}-build.${build_number}"
+          fi
           echo "version=$version" >> $GITHUB_ENV
+          echo "release_tag=$release_tag" >> $GITHUB_ENV
           echo "Version extracted: $version"
+          echo "Release tag: $release_tag"
+
+      - name: Locate APK
+        run: |
+          apk_path=$(find build/app/outputs -type f -name "*.apk" | head -n 1)
+          if [ -z "$apk_path" ]; then
+            echo "No APK found under build/app/outputs"
+            exit 1
+          fi
+          echo "apk_path=$apk_path" >> $GITHUB_ENV
+          echo "Using APK: $apk_path"
 
       - name: Upload Release Artifact to GitHub
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: v${{ env.version }}
+          tag: ${{ env.release_tag }}
           name: Nav Dashboard v${{ env.version }}
-          artifacts: "build/app/outputs/flutter-apk/app-release.apk"
+          artifacts: ${{ env.apk_path }}
           artifactContentType: application/vnd.android.package-archive
           draft: false
           prerelease: false
