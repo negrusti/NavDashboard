@@ -24,6 +24,11 @@ BoundValue<DoubleValue<T>> _boundDoubleValue<T>(
       tier: tier);
 }
 
+BoundValue<StringValue> _boundStringValue(String data, Property property,
+    {int tier = 1}) {
+  return BoundValue(Source.network, property, StringValue(data), tier: tier);
+}
+
 Uint8List _makeNmea2000Packet(int pgn, List<int> payload,
     {int source = 0x23,
     int destination = 0xFF,
@@ -63,6 +68,11 @@ List<int> _i32(int value) {
   final bytes = Uint8List(4);
   ByteData.sublistView(bytes).setInt32(0, value, Endian.little);
   return bytes;
+}
+
+List<int> _lau(String value) {
+  final bytes = value.codeUnits;
+  return [bytes.length + 2, 1, ...bytes, 0];
 }
 
 void main() {
@@ -527,6 +537,31 @@ void main() {
         BoundValueListMatches([
           _boundSingleValue(
               DateTime.utc(2024, 10, 4, 12, 34, 56), Property.utcTime),
+        ]));
+  });
+
+  test('should parse NMEA2000 route waypoint name packet', () {
+    final packet = _makeNmea2000Packet(129285, [
+      ..._u16(0),
+      ..._u16(2),
+      ..._u16(1),
+      ..._u16(99),
+      0,
+      ..._lau('Route'),
+      0xFF,
+      ..._u16(10),
+      ..._lau('Origin'),
+      ..._i32(144600672),
+      ..._i32(-608734720),
+      ..._u16(11),
+      ..._lau('Destination'),
+      ..._i32(144700000),
+      ..._i32(-608800000),
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([
+          _boundStringValue('Destination', Property.waypointName),
         ]));
   });
 

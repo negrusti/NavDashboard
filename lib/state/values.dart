@@ -45,8 +45,31 @@ abstract class Value {
       return DoubleValue.deserialize(input) as V?;
     } else if (V == AugmentedBearing) {
       return AugmentedBearing.deserialize(input) as V?;
+    } else if (V == StringValue) {
+      return StringValue.deserialize(input) as V?;
     }
     throw InvalidTypeException('Deserialize for type $V not known');
+  }
+}
+
+/// A value containing displayable text.
+class StringValue extends Value {
+  final String data;
+
+  StringValue(this.data);
+
+  static StringValue? deserialize(String input) {
+    return input.isEmpty ? null : StringValue(input);
+  }
+
+  @override
+  String toString() {
+    return data;
+  }
+
+  @override
+  String serialize() {
+    return data;
   }
 }
 

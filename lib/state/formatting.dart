@@ -255,6 +255,10 @@ final Map<Dimension, Map<String, Formatter>> _formatters = {
         unconversion: (far) => ((far - 32.0) / 9.0 * 5.0),
         formatting: (far) => (far.toStringAsFixed(1)))
   },
+  Dimension.text: {
+    'text': CustomFormatter<StringValue>(
+        'text', null, (val) => val == null ? '---' : val.data),
+  },
   Dimension.time: {
     // Rendering time without date is very wide, so unlike most other data it
     // would tend to be sized in the cell aspect ratio we're aiming for based

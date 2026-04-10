@@ -150,6 +150,9 @@ class ConsistentDataElement<V extends Value> extends DataElement<V, V> {
     } else if (property.dimension.type == DoubleValue<double>) {
       return ConsistentDataElement<DoubleValue<double>>(
           source, property, staleness);
+    } else if (property.dimension.type == StringValue) {
+      return ConsistentDataElement<StringValue>(
+          source, property, staleness);
     } else {
       throw InvalidTypeException(
           "Cannot create Element with unknown runtime type ${property.dimension}");

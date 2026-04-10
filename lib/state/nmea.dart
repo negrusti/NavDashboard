@@ -3,6 +3,7 @@
 // of the MIT license. See the LICENCE.md file for details.
 
 import 'dart:collection';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
@@ -391,6 +392,12 @@ List<BoundValue> _createNmea2000Values(int pgn, Uint8List payload) {
             _boundSingleValue(trueBearing, Property.waypointBearing, tier: 2));
       }
       return values;
+    case 129285:
+      _validatePayloadLength(payload, 10);
+      final waypointName = _parseDestinationWaypointName(payload);
+      return waypointName == null
+          ? []
+          : [_boundStringValue(waypointName, Property.waypointName)];
     case 129291:
       _validatePayloadLength(payload, 8);
       final reference = payload[1] & 0x03;
@@ -658,6 +665,82 @@ Property? _fuelPropertyForInstance(int instance) {
     default:
       return null;
   }
+}
+
+String? _parseDestinationWaypointName(Uint8List payload) {
+  final count = _readUint16(payload, 2);
+  if (count == null || count < 1) {
+    return null;
+  }
+
+  final routeName = _readStringLau(payload, 9);
+  if (routeName == null) {
+    return null;
+  }
+  var offset = routeName.nextOffset + 1; // Reserved byte after route name.
+  String? waypointName;
+
+  for (int i = 0; i < count; i++) {
+    if (offset + 2 > payload.length) {
+      return waypointName;
+    }
+    offset += 2; // WP ID.
+
+    final name = _readStringLau(payload, offset);
+    if (name == null) {
+      return waypointName;
+    }
+    offset = name.nextOffset;
+    if (name.value.isNotEmpty) {
+      waypointName = name.value;
+    }
+
+    if (offset + 8 > payload.length) {
+      return waypointName;
+    }
+    offset += 8; // WP latitude and longitude.
+  }
+
+  return waypointName;
+}
+
+_ParsedString? _readStringLau(Uint8List payload, int offset) {
+  if (offset + 2 > payload.length) {
+    return null;
+  }
+  final length = payload[offset];
+  if (length == 0 || length == 0xFF || offset + 1 + length > payload.length) {
+    return null;
+  }
+
+  final encoding = payload[offset + 1];
+  final data = payload.sublist(offset + 2, offset + 1 + length).toList();
+  while (data.isNotEmpty && (data.last == 0 || data.last == 0xFF)) {
+    data.removeLast();
+  }
+
+  late final String value;
+  if (encoding == 0) {
+    value = _decodeUtf16Le(data);
+  } else {
+    value = latin1.decode(data);
+  }
+  return _ParsedString(value.trim(), offset + 1 + length);
+}
+
+String _decodeUtf16Le(List<int> data) {
+  final codeUnits = <int>[];
+  for (int i = 0; i + 1 < data.length; i += 2) {
+    codeUnits.add(data[i] | (data[i + 1] << 8));
+  }
+  return String.fromCharCodes(codeUnits);
+}
+
+class _ParsedString {
+  final String value;
+  final int nextOffset;
+
+  _ParsedString(this.value, this.nextOffset);
 }
 
 /// Validates that the supplied payload matches the expected ASCII checksum, throwing
@@ -972,6 +1055,11 @@ BoundValue<DoubleValue<double>> _boundDoubleValue(
     {int tier = 1}) {
   return BoundValue(Source.network, property, DoubleValue(first, second),
       tier: tier);
+}
+
+BoundValue<StringValue> _boundStringValue(String string, Property property,
+    {int tier = 1}) {
+  return BoundValue(Source.network, property, StringValue(string), tier: tier);
 }
 
 /// Validates fields contains the expected number of entries.

@@ -70,6 +70,7 @@ enum Property {
   variation('Magnetic variation', 'MagVar', Dimension.angle),
   waterTemperature('Water temperature', 'Water', Dimension.temperature),
   waypointBearing('Bearing to waypoint', 'Wpt Brg', Dimension.bearing, sources: {Source.local, Source.network}),
+  waypointName('Waypoint name', 'Wpt', Dimension.text),
   waypointRange('Range to waypoint', 'Wpt Rng', Dimension.distance, sources: {Source.local, Source.network}),
   crossTrackError('Cross track error', 'XTE', Dimension.crossTrackError),
   fuel0('Fuel tank 0', 'Fuel 0', Dimension.percentage),
@@ -143,6 +144,7 @@ enum Dimension {
       nativeUnits: 'meters/sec',
       derivationFriendly: true),
   temperature(type: SingleValue<double>, nativeUnits: 'degrees celcius'),
+  text(type: StringValue, nativeUnits: 'text'),
   time(type: SingleValue<DateTime>, nativeUnits: 'datetime');
 
   final Type type;
