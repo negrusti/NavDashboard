@@ -450,6 +450,25 @@ void main() {
         ]));
   });
 
+  test('should parse real NMEA2000 Raymarine COG/SOG payload', () {
+    final packet = _makeNmea2000Packet(129026, [
+      0xFF,
+      0xFC,
+      0x76,
+      0xDE,
+      0x01,
+      0x00,
+      0xFF,
+      0xFF,
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([
+          _boundSingleValue(326.2995, Property.courseOverGround, tier: 2),
+          _boundSingleValue(0.01, Property.speedOverGround, tier: 2),
+        ]));
+  });
+
   test('should parse NMEA2000 water depth packet', () {
     final packet = _makeNmea2000Packet(128267, [
       0x03,
@@ -474,6 +493,25 @@ void main() {
         NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
         BoundValueListMatches([
           _boundDoubleValue(37.5, -122.5, Property.gpsPosition, tier: 2),
+        ]));
+  });
+
+  test('should parse real NMEA2000 Raymarine rapid position payload', () {
+    final packet = _makeNmea2000Packet(129025, [
+      0x60,
+      0x6E,
+      0x9E,
+      0x08,
+      0x00,
+      0x72,
+      0xB7,
+      0xDB,
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([
+          _boundDoubleValue(14.4600672, -60.873472, Property.gpsPosition,
+              tier: 2),
         ]));
   });
 
