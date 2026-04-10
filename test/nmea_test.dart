@@ -511,7 +511,22 @@ void main() {
         NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
         BoundValueListMatches([
           _boundDoubleValue(14.4600672, -60.873472, Property.gpsPosition,
-              tier: 2),
+          tier: 2),
+        ]));
+  });
+
+  test('should parse NMEA2000 date/time packet', () {
+    final packet = _makeNmea2000Packet(129033, [
+      ..._u16(20000),
+      ..._u32(452960000),
+      0xFF,
+      0xFF,
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([
+          _boundSingleValue(
+              DateTime.utc(2024, 10, 4, 12, 34, 56), Property.utcTime),
         ]));
   });
 

@@ -359,6 +359,19 @@ List<BoundValue> _createNmea2000Values(int pgn, Uint8List payload) {
         values.add(_boundSingleValue(hdop * 0.01, Property.gpsHdop));
       }
       return values;
+    case 129033:
+      _validatePayloadLength(payload, 8);
+      final days = _readUint16(payload, 0);
+      final seconds = _readUint32(payload, 2);
+      if (days == null || seconds == null) {
+        return [];
+      }
+      return [
+        _boundSingleValue(
+            DateTime.utc(1970, 1, 1)
+                .add(Duration(days: days, microseconds: seconds * 100)),
+            Property.utcTime),
+      ];
     case 129283:
       _validatePayloadLength(payload, 8);
       return [
