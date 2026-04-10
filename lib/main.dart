@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'state/data_set.dart';
@@ -30,10 +31,18 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   WakelockPlus.toggle(enable: true);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  _requestStartupPermissions();
   
   final logSet = LogSet();
   Logger.root.onRecord.listen((record) => logSet.add(record));
   runApp(NmeaDashboardApp(logSet));
+}
+
+Future<void> _requestStartupPermissions() async {
+  final locationStatus = await Permission.locationWhenInUse.status;
+  if (locationStatus.isDenied) {
+    await Permission.locationWhenInUse.request();
+  }
 }
 
 /// The root widget for the application.
