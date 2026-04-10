@@ -5,12 +5,13 @@
 import 'dart:async';
 
 import 'package:async/async.dart';
+import 'package:logging/logging.dart';
 import 'package:nmea_dashboard/state/values.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 import 'common.dart';
 
 const _interval = Duration(seconds: 1);
+final _log = Logger('Local');
 
 /// Returns an infinite stream of valid values read from the local device
 /// network port, logging any errors.
@@ -34,51 +35,55 @@ Stream<BoundValue> valuesFromLocalDevice() {
 
 Stream<BoundValue> _gpsDataStream() {
   return Stream.periodic(_interval, (_) async {
-    // Ensure location permissions are granted
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception('Location services are disabled.');
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Location permissions are denied.');
+    try {
+      // Ensure location permissions are granted
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _log.warning('Location services are disabled');
+        return <BoundValue>[];
       }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          _log.warning('Location permissions are denied');
+          return <BoundValue>[];
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        _log.warning('Location permissions are permanently denied');
+        return <BoundValue>[];
+      }
+
+      // Get the latest position
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // Create a list of BoundValue objects for all GPS-related properties
+      return [
+        BoundValue<DoubleValue<double>>(
+          Source.local,
+          Property.gpsPosition,
+          DoubleValue(position.latitude, position.longitude),
+        ),
+        BoundValue<SingleValue<double>>(
+          Source.local,
+          Property.courseOverGround,
+          SingleValue(position.heading), // Heading (COG)
+        ),
+        BoundValue<SingleValue<double>>(
+          Source.local,
+          Property.speedOverGround,
+          SingleValue(position.speed), // Speed (SOG)
+        ),
+      ];
+    } catch (e) {
+      _log.warning('Error reading local GPS data: $e');
+      return <BoundValue>[];
     }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception(
-          'Location permissions are permanently denied, we cannot request permissions.');
-    }
-
-    // Get the latest position
-    final position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
-    // Create a list of BoundValue objects for all GPS-related properties
-    return [
-      BoundValue<SingleValue<Map<String, double>>>(
-        Source.local,
-        Property.gpsPosition,
-        SingleValue({
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-        }),
-      ),
-      BoundValue<SingleValue<double>>(
-        Source.local,
-        Property.courseOverGround,
-        SingleValue(position.heading), // Heading (COG)
-      ),
-      BoundValue<SingleValue<double>>(
-        Source.local,
-        Property.speedOverGround,
-        SingleValue(position.speed), // Speed (SOG)
-      ),
-    ];
   })
       .asyncMap((values) async => await values) // Handle futures in the periodic stream
       .expand((values) => values); // Flatten the list of BoundValue into individual stream events
