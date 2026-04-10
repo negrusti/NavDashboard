@@ -72,3 +72,4 @@ jobs:
           artifactContentType: application/vnd.android.package-archive
           draft: false
           prerelease: false
+          allowUpdates: true
