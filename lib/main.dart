@@ -16,9 +16,6 @@ import 'ui/forms/view_help.dart';
 import 'ui/theme.dart';
 import 'ui/pages/data_table.dart';
 
-/// The minimum time for which we display the loading screen.
-const Duration loadingScreenTime = Duration(seconds: 1);
-
 /// A standard overlay used before and after loading.
 const SystemUiOverlayStyle overlayStyle = SystemUiOverlayStyle(
   statusBarBrightness: Brightness.dark,
@@ -55,7 +52,6 @@ class NmeaDashboardApp extends StatelessWidget {
         future: Future.wait([
           Settings.create(),
           HistoryManagerImpl.create(),
-          Future.delayed(loadingScreenTime)
         ]),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
