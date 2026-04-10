@@ -42,21 +42,23 @@ class NmeaDashboardApp extends StatelessWidget {
 
   const NmeaDashboardApp(this._logSet, {super.key});
 
+  Future<_BootstrapData> _loadBootstrapData() async {
+    return _BootstrapData(
+        await Settings.create(), await HistoryManagerImpl.create());
+  }
+
   // The root of the application needs to asynchronously load setttings
   // before deciding the theme and delegating the to a themed application.
   @override
   Widget build(BuildContext context) {
     /// Display the loading screen for at least the minimum time, potentially
     /// it could be diplayed longer if loading the setting takes a while.
-    return FutureBuilder(
-        future: Future.wait([
-          Settings.create(),
-          HistoryManagerImpl.create(),
-        ]),
+    return FutureBuilder<_BootstrapData>(
+        future: _loadBootstrapData(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
-            final settings = snapshot.data![0];
-            final historyManager = snapshot.data![1];
+            final settings = snapshot.data!.settings;
+            final historyManager = snapshot.data!.historyManager;
             return MultiProvider(providers: [
               ChangeNotifierProvider<LogSet>(create: (_) => _logSet),
               ChangeNotifierProvider<Settings>(create: (_) => settings),
@@ -76,6 +78,13 @@ class NmeaDashboardApp extends StatelessWidget {
           }
         });
   }
+}
+
+class _BootstrapData {
+  final Settings settings;
+  final HistoryManager historyManager;
+
+  _BootstrapData(this.settings, this.historyManager);
 }
 
 /// A simple stateless page to display while settings are loading.
