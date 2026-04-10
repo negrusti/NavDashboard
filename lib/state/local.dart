@@ -34,59 +34,61 @@ Stream<BoundValue> valuesFromLocalDevice() {
 }
 
 Stream<BoundValue> _gpsDataStream() {
-  return Stream.periodic(_interval, (_) async {
-    try {
-      // Ensure location permissions are granted
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        _log.warning('Location services are disabled');
-        return <BoundValue>[];
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          _log.warning('Location permissions are denied');
-          return <BoundValue>[];
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        _log.warning('Location permissions are permanently denied');
-        return <BoundValue>[];
-      }
-
-      // Get the latest position
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      // Create a list of BoundValue objects for all GPS-related properties
-      return [
-        BoundValue<DoubleValue<double>>(
-          Source.local,
-          Property.gpsPosition,
-          DoubleValue(position.latitude, position.longitude),
-        ),
-        BoundValue<SingleValue<double>>(
-          Source.local,
-          Property.courseOverGround,
-          SingleValue(position.heading), // Heading (COG)
-        ),
-        BoundValue<SingleValue<double>>(
-          Source.local,
-          Property.speedOverGround,
-          SingleValue(position.speed), // Speed (SOG)
-        ),
-      ];
-    } catch (e) {
-      _log.warning('Error reading local GPS data: $e');
-      return <BoundValue>[];
+  return _hasLocationPermission().asStream().asyncExpand((hasPermission) {
+    if (!hasPermission) {
+      return const Stream<BoundValue>.empty();
     }
-  })
-      .asyncMap((values) async => await values) // Handle futures in the periodic stream
-      .expand((values) => values); // Flatten the list of BoundValue into individual stream events
+    return Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 0,
+      ),
+    ).expand(_valuesFromPosition).handleError((e) {
+      _log.warning('Error reading local GPS data: $e');
+    });
+  });
+}
+
+Future<bool> _hasLocationPermission() async {
+  final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  if (!serviceEnabled) {
+    _log.warning('Location services are disabled');
+    return false;
+  }
+
+  var permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+  }
+  if (permission == LocationPermission.denied) {
+    _log.warning('Location permissions are denied');
+    return false;
+  }
+  if (permission == LocationPermission.deniedForever) {
+    _log.warning('Location permissions are permanently denied');
+    return false;
+  }
+  return true;
+}
+
+Iterable<BoundValue> _valuesFromPosition(Position position) {
+  return [
+    BoundValue<DoubleValue<double>>(
+      Source.local,
+      Property.gpsPosition,
+      DoubleValue(position.latitude, position.longitude),
+    ),
+    BoundValue<SingleValue<double>>(
+      Source.local,
+      Property.courseOverGround,
+      SingleValue(position.heading),
+    ),
+    BoundValue<SingleValue<double>>(
+      Source.local,
+      Property.speedOverGround,
+      SingleValue(position.speed),
+    ),
+  ];
 }
 
 /*
