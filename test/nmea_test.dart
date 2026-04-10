@@ -25,18 +25,19 @@ BoundValue<DoubleValue<T>> _boundDoubleValue<T>(
 }
 
 Uint8List _makeNmea2000Packet(int pgn, List<int> payload,
-    {int source = 0x23, int priority = 3}) {
-  final pf = (pgn >> 8) & 0xFF;
-  final dp = (pgn >> 16) & 0x01;
-  final ps = (pf < 0xF0) ? 0xFF : (pgn & 0xFF);
-  final canId =
-      (priority << 26) | (dp << 24) | (pf << 16) | (ps << 8) | source;
-  final bytes = Uint8List(payload.length + 6);
+    {int source = 0x23,
+    int destination = 0xFF,
+    int priority = 3,
+    int timestampMs = 0}) {
+  final bytes = Uint8List(payload.length + 16);
   final data = ByteData.sublistView(bytes);
-  data.setUint32(0, canId, Endian.little);
-  bytes[4] = 0xFF;
-  bytes[5] = payload.length;
-  bytes.setRange(6, bytes.length, payload);
+  data.setUint64(0, timestampMs, Endian.little);
+  bytes[8] = source;
+  bytes[9] = destination;
+  bytes[10] = priority;
+  data.setUint32(11, pgn, Endian.little);
+  bytes[15] = payload.length;
+  bytes.setRange(16, bytes.length, payload);
   return bytes;
 }
 

@@ -200,14 +200,14 @@ class NmeaParser {
     if (protocol != NetworkProtocol.nmea2000Assembled) {
       throw const FormatException('Protocol expects ASCII NMEA0183 sentences');
     }
-    if (packet.length < 6) {
-      throw const FormatException('Packet is shorter than the 6-byte header');
+    if (packet.length < 16) {
+      throw const FormatException('Packet is shorter than the 16-byte header');
     }
 
     final byteData = ByteData.sublistView(packet);
-    final canId = byteData.getUint32(0, Endian.little);
-    final payloadLength = packet[5];
-    final expectedLength = payloadLength + 6;
+    final pgn = byteData.getUint32(11, Endian.little);
+    final payloadLength = packet[15];
+    final expectedLength = payloadLength + 16;
     if (payloadLength < 1) {
       throw const FormatException('Packet payload length was zero');
     }
@@ -216,8 +216,7 @@ class NmeaParser {
           'Packet was truncated, expected $expectedLength bytes and got ${packet.length}');
     }
 
-    final payload = Uint8List.sublistView(packet, 6, expectedLength);
-    final pgn = _extractPgn(canId);
+    final payload = Uint8List.sublistView(packet, 16, expectedLength);
 
     late final List<BoundValue> values;
     try {
@@ -239,13 +238,6 @@ class NmeaParser {
     successCounts.increment(pgn.toString());
     return values;
   }
-}
-
-int _extractPgn(int canId) {
-  final pf = (canId >> 16) & 0xFF;
-  final dp = (canId >> 24) & 0x01;
-  final ps = (canId >> 8) & 0xFF;
-  return (dp << 16) | (pf << 8) | ((pf < 0xF0) ? 0 : ps);
 }
 
 List<BoundValue> _createNmea2000Values(int pgn, Uint8List payload) {

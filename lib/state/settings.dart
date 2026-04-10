@@ -238,8 +238,8 @@ enum NetworkMode {
 }
 
 enum NetworkProtocol {
-  nmea0183('NMEA 0183 sentences'),
-  nmea2000Assembled('NMEA 2000 assembled packets');
+  nmea0183('NMEA 0183'),
+  nmea2000Assembled('NMEA 2000');
 
   final String description;
   const NetworkProtocol(this.description);
