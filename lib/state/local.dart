@@ -33,20 +33,45 @@ Stream<BoundValue> valuesFromLocalDevice() {
   ]);
 }
 
-Stream<BoundValue> _gpsDataStream() {
-  return _hasLocationPermission().asStream().asyncExpand((hasPermission) {
-    if (!hasPermission) {
-      return const Stream<BoundValue>.empty();
+Stream<BoundValue> _gpsDataStream() async* {
+  if (!await _hasLocationPermission()) {
+    return;
+  }
+
+  final lastKnown = await Geolocator.getLastKnownPosition();
+  if (lastKnown != null) {
+    for (final value in _valuesFromPosition(lastKnown)) {
+      yield value;
     }
-    return Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 0,
-      ),
-    ).expand(_valuesFromPosition).handleError((e) {
-      _log.warning('Error reading local GPS data: $e');
-    });
+  }
+
+  try {
+    final current = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    ).timeout(const Duration(seconds: 15));
+    for (final value in _valuesFromPosition(current)) {
+      yield value;
+    }
+  } on TimeoutException {
+    _log.warning('Timed out waiting for local GPS position');
+  } catch (e) {
+    _log.warning('Error reading initial local GPS position: $e');
+  }
+
+  final positionStream = Geolocator.getPositionStream(
+    locationSettings: const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 0,
+    ),
+  ).handleError((e) {
+    _log.warning('Error reading local GPS data: $e');
   });
+
+  await for (final position in positionStream) {
+    for (final value in _valuesFromPosition(position)) {
+      yield value;
+    }
+  }
 }
 
 Future<bool> _hasLocationPermission() async {
