@@ -195,6 +195,8 @@ class DataSet with ChangeNotifier {
         }
         element.updateValue(value);
       }
+    }, onError: (e) {
+      _log.warning('Local data subscription error: $e');
     });
   }
 

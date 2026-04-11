@@ -13,6 +13,7 @@ import 'common.dart';
 const _interval = Duration(seconds: 1);
 final _log = Logger('Local');
 bool _loggedFirstGpsFix = false;
+bool _loggedGpsStreamStart = false;
 
 /// Returns an infinite stream of valid values read from the local device
 /// network port, logging any errors.
@@ -35,6 +36,10 @@ Stream<BoundValue> valuesFromLocalDevice() {
 }
 
 Stream<BoundValue> _gpsDataStream() async* {
+  if (!_loggedGpsStreamStart) {
+    _log.warning('Starting local GPS stream');
+    _loggedGpsStreamStart = true;
+  }
   if (!await _hasLocationPermission()) {
     return;
   }
@@ -76,6 +81,7 @@ Stream<BoundValue> _gpsDataStream() async* {
 }
 
 Future<bool> _hasLocationPermission() async {
+  _log.warning('Checking local GPS service and permission');
   final serviceEnabled = await Geolocator.isLocationServiceEnabled();
   if (!serviceEnabled) {
     _log.warning('Location services are disabled');
@@ -94,6 +100,7 @@ Future<bool> _hasLocationPermission() async {
     _log.warning('Location permissions are permanently denied');
     return false;
   }
+  _log.warning('Local GPS permission is available: $permission');
   return true;
 }
 
