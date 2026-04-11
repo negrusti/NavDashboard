@@ -190,6 +190,9 @@ class DataSet with ChangeNotifier {
       if (element == null) {
         _log.warning('Got unrecognized local value: ${value.property}');
       } else {
+        if (value.property == Property.gpsPosition) {
+          _log.info('Updating local GPS position element');
+        }
         element.updateValue(value);
       }
     });

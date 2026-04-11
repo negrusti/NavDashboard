@@ -12,6 +12,7 @@ import 'common.dart';
 
 const _interval = Duration(seconds: 1);
 final _log = Logger('Local');
+bool _loggedFirstGpsFix = false;
 
 /// Returns an infinite stream of valid values read from the local device
 /// network port, logging any errors.
@@ -97,6 +98,12 @@ Future<bool> _hasLocationPermission() async {
 }
 
 Iterable<BoundValue> _valuesFromPosition(Position position) {
+  if (!_loggedFirstGpsFix) {
+    _log.info(
+        'Local GPS fix received: ${position.latitude}, ${position.longitude}, '
+        'heading=${position.heading}, speed=${position.speed}');
+    _loggedFirstGpsFix = true;
+  }
   return [
     BoundValue<DoubleValue<double>>(
       Source.local,
