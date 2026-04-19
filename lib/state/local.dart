@@ -8,6 +8,7 @@ import 'package:async/async.dart';
 import 'package:logging/logging.dart';
 import 'package:nmea_dashboard/state/values.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'common.dart';
 
 const _interval = Duration(seconds: 1);
@@ -31,7 +32,7 @@ Stream<BoundValue> valuesFromLocalDevice() {
     _gpsDataStream(),
 
     // Barometric pressure stream
-    // _pressureDataStream(),    
+    _pressureDataStream(),
   ]);
 }
 
@@ -130,25 +131,15 @@ Iterable<BoundValue> _valuesFromPosition(Position position) {
   ];
 }
 
-/*
 Stream<BoundValue> _pressureDataStream() {
-  return Stream.periodic(_interval, (_) async {
-    double? barometricPressure;
-
-    try {
-      // Get the latest pressure event
-      final barometerEvent = await barometerEvents.first;
-      barometricPressure = barometerEvent.pressure;
-    } catch (e) {
-      throw Exception('Error accessing barometer data: $e');
-    }
-
-    // Return the pressure as a BoundValue
+  return barometerEventStream().map((event) {
+    // sensors_plus reports pressure in hPa, while the app stores pascals.
     return BoundValue<SingleValue<double>>(
       Source.local,
       Property.pressure,
-      SingleValue(barometricPressure ?? 0.0), // Default to 0.0 if null
+      SingleValue(event.pressure * 100.0),
     );
-  }).asyncMap((event) async => await event); // Handle the async result
+  }).handleError((e) {
+    _log.warning('Error reading local barometer data: $e');
+  });
 }
-*/
