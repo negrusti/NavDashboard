@@ -68,6 +68,7 @@ enum Property {
       sources: {Source.local, Source.network}),
   localTime('Local datetime', 'Local', Dimension.time, sources: {Source.local}),
   variation('Magnetic variation', 'MagVar', Dimension.angle),
+  vhfChannel('VHF channel', 'VHF', Dimension.integer),
   waterTemperature('Water temperature', 'Water', Dimension.temperature),
   waypointBearing('Bearing to waypoint', 'Wpt Brg', Dimension.bearing, sources: {Source.local, Source.network}),
   waypointName('Waypoint name', 'Wpt', Dimension.text),

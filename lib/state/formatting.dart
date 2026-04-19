@@ -228,7 +228,7 @@ final Map<Dimension, Map<String, Formatter>> _formatters = {
     'feet': SimpleFormatter('feet', 'ft', '--.-', metersToFeet, 1),
     'fathoms': SimpleFormatter('fathoms', 'f', '-.--', metersToFeet / 6, 2)
   },
-  Dimension.integer: {'default': IntegerFormatter('default', null, '-')},
+  Dimension.integer: {'default': IntegerFormatter('default', 'Ch', '-')},
   Dimension.position: {
     'degMin': PositionFormatter('decimal min', false),
     'degMinSec': PositionFormatter('deg min sec', true),

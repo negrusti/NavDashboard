@@ -412,6 +412,12 @@ List<BoundValue> _createNmea2000Values(int pgn, Uint8List payload) {
         values.add(_boundSingleValue(driftRaw * 0.01, Property.currentDrift));
       }
       return values;
+    case 129799:
+      _validatePayloadLength(payload, 11);
+      final channel = _parseVhfChannel(payload);
+      return channel == null
+          ? []
+          : [_boundSingleValue(channel, Property.vhfChannel)];
     case 130306:
       _validatePayloadLength(payload, 6);
       final speedRaw = _readUint16(payload, 1);
@@ -665,6 +671,18 @@ Property? _fuelPropertyForInstance(int instance) {
     default:
       return null;
   }
+}
+
+int? _parseVhfChannel(Uint8List payload) {
+  var end = 8;
+  while (end < payload.length && payload[end] != 0) {
+    end += 1;
+  }
+  if (end == 8) {
+    return null;
+  }
+  final channelString = ascii.decode(payload.sublist(8, end));
+  return int.tryParse(channelString);
 }
 
 String? _parseDestinationWaypointName(Uint8List payload) {

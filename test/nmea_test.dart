@@ -565,6 +565,35 @@ void main() {
         ]));
   });
 
+  test('should parse NMEA2000 VHF channel packet', () {
+    final packet = _makeNmea2000Packet(129799, [
+      0x00,
+      0x42,
+      0xEF,
+      0x00,
+      0x00,
+      0x42,
+      0xEF,
+      0x00,
+      0x31,
+      0x36,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x19,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([
+          _boundSingleValue(16, Property.vhfChannel),
+        ]));
+  });
+
   test('should parse NMEA2000 apparent wind packet', () {
     final packet = _makeNmea2000Packet(130306, [
       0x04,
