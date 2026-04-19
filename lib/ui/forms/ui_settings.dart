@@ -32,11 +32,13 @@ class _UiSettingsForm extends StatefulWidget {
 class _UiSettingsFormState extends StatefulFormState<_UiSettingsForm> {
   late String _valueFont;
   late String _headingFont;
+  late bool _autoNightMode;
 
   @override
   void initState() {
     _valueFont = widget._settings.valueFont;
     _headingFont = widget._settings.headingFont;
+    _autoNightMode = widget._settings.autoNightMode;
     super.initState();
   }
 
@@ -50,14 +52,30 @@ class _UiSettingsFormState extends StatefulFormState<_UiSettingsForm> {
           children: [
             Expanded(
                 child: ListView(
-                    children: [_buildValueField(), _buildHeadingField()])),
+                    children: [
+                  _buildAutoNightModeField(),
+                  _buildValueField(),
+                  _buildHeadingField()
+                ])),
             buildSaveButton(postSaver: () {
+              widget._settings.setAutoNightMode(_autoNightMode);
               widget._settings
                   .setFonts(valueFont: _valueFont, headingFont: _headingFont);
               Navigator.pop(context);
             })
           ]),
     );
+  }
+
+  Widget _buildAutoNightModeField() {
+    return buildSwitch(
+        label: 'Auto night mode',
+        initialValue: _autoNightMode,
+        onChanged: (value) {
+          setState(() {
+            _autoNightMode = value;
+          });
+        });
   }
 
   Widget _buildValueField() {

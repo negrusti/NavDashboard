@@ -28,6 +28,7 @@ dependencies:
   flutter:
     sdk: flutter
   async: ^2.10.0
+  ambient_light: ^0.1.4
   cupertino_icons: ^1.0.2
   collection: ^1.17.1
   flutter_markdown: ^0.6.14

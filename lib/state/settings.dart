@@ -249,6 +249,7 @@ enum NetworkProtocol {
 class UiSettings with ChangeNotifier {
   final _PrefValue<bool> _firstRun;
   final _PrefValue<bool> _nightMode;
+  final _PrefValue<bool> _autoNightMode;
   final _PrefValue<bool> _alwaysOn;
   final _PrefValue<bool> _fullScreen;    
   final _PrefValue<String> _valueFont;
@@ -269,6 +270,7 @@ class UiSettings with ChangeNotifier {
   UiSettings(SharedPreferences prefs)
       : _firstRun = _PrefValue(prefs, 'ui_first_run', true),
         _nightMode = _PrefValue(prefs, 'ui_night_mode', false),
+        _autoNightMode = _PrefValue(prefs, 'ui_auto_night_mode', false),
         _alwaysOn = _PrefValue(prefs, 'ui_always_on', false),
         _fullScreen = _PrefValue(prefs, 'ui_full_screen', false),
         _valueFont = _PrefValue(prefs, 'ui_value_font', 'Lexend'),
@@ -276,6 +278,7 @@ class UiSettings with ChangeNotifier {
 
   bool get firstRun => _firstRun.value;
   bool get nightMode => _nightMode.value;
+  bool get autoNightMode => _autoNightMode.value;
   bool get alwaysOn => _alwaysOn.value;
   bool get fullScreen => _fullScreen.value;
   String get valueFont => _valueFont.value;
@@ -300,7 +303,15 @@ class UiSettings with ChangeNotifier {
   }
 
   void setNightMode(bool night) {
+    if (_nightMode.value == night) {
+      return;
+    }
     _nightMode.set(night);
+    notifyListeners();
+  }
+
+  void setAutoNightMode(bool auto) {
+    _autoNightMode.set(auto);
     notifyListeners();
   }
 

@@ -2,6 +2,9 @@
 // This software may be modified and distributed under the terms
 // of the MIT license. See the LICENCE.md file for details.
 
+import 'dart:async';
+
+import 'package:ambient_light/ambient_light.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
@@ -25,6 +28,13 @@ const SystemUiOverlayStyle overlayStyle = SystemUiOverlayStyle(
   systemNavigationBarColor: Colors.black,
   systemNavigationBarIconBrightness: Brightness.light,
 );
+
+const double _ambientNightThresholdLux = 20.0;
+const double _ambientDayThresholdLux = 80.0;
+const double _ambientAverageAlpha = 0.15;
+const Duration _ambientSwitchDelay = Duration(seconds: 30);
+
+final _log = Logger('Main');
 
 void main() {
   // TODO: move Wakelock and Full Screen Mode into options
@@ -134,8 +144,108 @@ class _ThemedApp extends StatelessWidget {
         child: MaterialApp(
           title: 'NMEA Dashboard',
           theme: createThemeData(uiSettings),
-          home: _HomePage(),
+          home: _AmbientNightModeController(child: _HomePage()),
         ));
+  }
+}
+
+class _AmbientNightModeController extends StatefulWidget {
+  final Widget child;
+
+  const _AmbientNightModeController({required this.child});
+
+  @override
+  State<_AmbientNightModeController> createState() =>
+      _AmbientNightModeControllerState();
+}
+
+class _AmbientNightModeControllerState
+    extends State<_AmbientNightModeController> {
+  final AmbientLight _ambientLight = AmbientLight();
+  StreamSubscription<double>? _subscription;
+  bool? _subscribedAutoNightMode;
+  double? _averageLux;
+  bool? _pendingNightMode;
+  DateTime? _pendingSince;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final autoNightMode = Provider.of<UiSettings>(context).autoNightMode;
+    if (_subscribedAutoNightMode == autoNightMode) {
+      return;
+    }
+    _subscribedAutoNightMode = autoNightMode;
+    _subscription?.cancel();
+    _subscription = null;
+    _averageLux = null;
+    _pendingNightMode = null;
+    _pendingSince = null;
+
+    if (autoNightMode) {
+      _subscription = _ambientLight.ambientLightStream.listen(
+        _handleAmbientLux,
+        onError: (e) => _log.warning('Error reading ambient light: $e'),
+      );
+      _ambientLight.currentAmbientLight().then((lux) {
+        if (lux != null) {
+          _handleAmbientLux(lux);
+        }
+      }).catchError((e) {
+        _log.warning('Error reading current ambient light: $e');
+      });
+    }
+  }
+
+  void _handleAmbientLux(double lux) {
+    _averageLux = (_averageLux == null)
+        ? lux
+        : (_averageLux! * (1.0 - _ambientAverageAlpha)) +
+            (lux * _ambientAverageAlpha);
+
+    final uiSettings = Provider.of<UiSettings>(context, listen: false);
+    final targetNightMode = _targetNightMode(_averageLux!);
+    if (targetNightMode == null || targetNightMode == uiSettings.nightMode) {
+      _pendingNightMode = null;
+      _pendingSince = null;
+      return;
+    }
+
+    final now = DateTime.now();
+    if (_pendingNightMode != targetNightMode) {
+      _pendingNightMode = targetNightMode;
+      _pendingSince = now;
+      return;
+    }
+
+    if (now.difference(_pendingSince!) >= _ambientSwitchDelay) {
+      _log.info(
+          'Auto night mode set to $targetNightMode at ${_averageLux!.toStringAsFixed(1)} lux');
+      uiSettings.setNightMode(targetNightMode);
+      _pendingNightMode = null;
+      _pendingSince = null;
+    }
+  }
+
+  bool? _targetNightMode(double averageLux) {
+    if (averageLux <= _ambientNightThresholdLux) {
+      return true;
+    }
+    if (averageLux >= _ambientDayThresholdLux) {
+      return false;
+    }
+    return null;
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }
 
