@@ -2,15 +2,15 @@
 	"name": "Standard",
 	"cells": [
     {"source": "local", "element": "localTime", "format": "hms"},
-    {"source": "network", "element": "heading", "format": "mag"},
-		{"source": "network", "element": "distanceTrip", "format": "nm"},
-		{"source": "network", "element": "depthWithOffset", "format": "feet"},
+    {"source": "local", "element": "gpsPosition", "format": "degMin"},
+		{"source": "local", "element": "speedOverGround", "format": "knots"},
 		{"source": "network", "element": "speedThroughWater", "format": "knots"},
-		{"source": "network", "element": "trueWindSpeed", "format": "knots"},
-		{"source": "network", "element": "trueWindDirection", "format": "true"},
-		{"source": "network", "element": "pressure", "format": "millibars"},
-		{"source": "network", "element": "speedOverGround", "format": "knots"},
-	  {"source": "network", "element": "gpsPosition", "format": "degMin"}
+		{"source": "network", "element": "apparentWindSpeed", "format": "knots"},
+		{"source": "network", "element": "apparentWindAngle", "format": "degrees"},
+    {"source": "network", "element": "heading", "format": "mag"},
+		{"source": "network", "element": "waypointRange", "format": "nm"},
+		{"source": "network", "element": "depthWithOffset", "format": "feet"},
+		{"source": "local", "element": "pressure", "format": "millibars"}
     ]
 }, {
   "name": "Medium",
