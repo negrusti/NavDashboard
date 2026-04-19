@@ -144,6 +144,9 @@ class ConsistentDataElement<V extends Value> extends DataElement<V, V> {
       // Create a different subclass with history when possible.
       return SingleValueDoubleConsistentDataElement(
           source, property, staleness);
+    } else if (property.dimension.type == SingleValue<int>) {
+      return ConsistentDataElement<SingleValue<int>>(
+          source, property, staleness);
     } else if (property.dimension.type == SingleValue<DateTime>) {
       return ConsistentDataElement<SingleValue<DateTime>>(
           source, property, staleness);

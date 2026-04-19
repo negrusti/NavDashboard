@@ -55,6 +55,7 @@ dev_dependencies:
   test: ^1.24.0
 
 dependency_overrides:
+  package_info_plus: 9.0.1
   win32: ^5.5.4
 
 flutter:
