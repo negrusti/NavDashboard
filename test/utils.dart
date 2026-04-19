@@ -22,6 +22,10 @@ class ValueMatches extends Matcher {
       final e = _expected as SingleValue<double>;
       final a = item as SingleValue<double>;
       return ((a.data - e.data).abs() < _floatTolerance);
+    } else if (_expected is SingleValue<int>) {
+      final e = _expected as SingleValue<int>;
+      final a = item as SingleValue<int>;
+      return a.data == e.data;
     } else if (_expected is SingleValue<DateTime>) {
       final e = _expected as SingleValue<DateTime>;
       final a = item as SingleValue<DateTime>;
