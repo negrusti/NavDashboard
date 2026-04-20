@@ -36,7 +36,7 @@ const Set<Source> _networkOnly = {Source.network};
 /// sources we expect to find it on.
 enum Property {
   airTemperature('Air temperature', 'Air', Dimension.temperature),
-  apparentWindAngle('Apparent wind angle', 'AWA', Dimension.angle),
+  apparentWindAngle('Apparent wind angle', 'AWA', Dimension.relativeAngle),
   apparentWindSpeed('Apparent wind speed', 'AWS', Dimension.speed),
   courseOverGround('Course over ground', 'COG', Dimension.bearing, sources: {Source.local, Source.network}),
   currentSet('Set', 'Set', Dimension.bearing),
@@ -140,6 +140,7 @@ enum Dimension {
       type: SingleValue<double>,
       nativeUnits: 'pascals',
       derivationFriendly: true),
+  relativeAngle(type: SingleValue<double>, nativeUnits: 'degrees'),
   speed(
       type: SingleValue<double>,
       nativeUnits: 'meters/sec',

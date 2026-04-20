@@ -42,6 +42,31 @@ void main() {
     expect(format(-234.321, 'degrees'), equals('-234'));
   });
 
+  test('wind angles should be formatted as signed relative angles', () {
+    String format(double number) {
+      return formattersFor(Property.apparentWindAngle.dimension)['wind']!
+          .format(SingleValue(number));
+    }
+
+    expect(format(0), equals('0'));
+    expect(format(45.4), equals('+45'));
+    expect(format(180), equals('+180'));
+    expect(format(181), equals('-179'));
+    expect(format(315), equals('-45'));
+    expect(format(359.6), equals('0'));
+  });
+
+  test('true wind angles should remain absolute angles', () {
+    String format(double number) {
+      return formattersFor(Property.trueWindAngle.dimension)['degrees']!
+          .format(SingleValue(number));
+    }
+
+    expect(format(45.4), equals('45'));
+    expect(format(181), equals('181'));
+    expect(format(315), equals('315'));
+  });
+
   test('angular rates should be formatted appropriately', () {
     String format(double number, String name) {
       return formattersFor(Property.rateOfTurn.dimension)[name]!

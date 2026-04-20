@@ -242,6 +242,20 @@ final Map<Dimension, Map<String, Formatter>> _formatters = {
     'inchHg': SimpleFormatter(
         'inches mercury', 'in.hg', '--.--', pascalsToInchesMercury, 2)
   },
+  Dimension.relativeAngle: {
+    'degrees': CustomNumericFormatter<SingleValue<double>>('Degrees', '°',
+        conversion: (value) =>
+            value == null ? null : _relativeWindAngle(value.data),
+        formatting: (value) => value == null
+            ? '---'
+            : _signedAngleString(_relativeWindAngle(value.data))),
+    'wind': CustomNumericFormatter<SingleValue<double>>('Wind angle', '°',
+        conversion: (value) =>
+            value == null ? null : _relativeWindAngle(value.data),
+        formatting: (value) => value == null
+            ? '---'
+            : _signedAngleString(_relativeWindAngle(value.data))),
+  },
   Dimension.speed: {
     'metersPerSec': SimpleFormatter('m/sec', 'm/s', '-.-', 1.0, 1),
     'knots': SimpleFormatter('knots', 'kt', '-.-', metersPerSecondToKnots, 1),
@@ -281,6 +295,22 @@ final Map<Dimension, Map<String, Formatter>> _formatters = {
 String _bearingString(double number, String suffix) {
   int rounded = number.round() % 360;
   return rounded.toString().padLeft(3, '0') + suffix;
+}
+
+double _relativeWindAngle(double angle) {
+  final normalized = angle % 360.0;
+  if (normalized > 180.0) {
+    return normalized - 360.0;
+  }
+  return normalized;
+}
+
+String _signedAngleString(double number) {
+  final rounded = number.round();
+  if (rounded > 0) {
+    return '+$rounded';
+  }
+  return rounded.toString();
 }
 
 String _xteString(double number, String units) {

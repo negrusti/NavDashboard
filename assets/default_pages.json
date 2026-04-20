@@ -6,7 +6,7 @@
 		{"source": "local", "element": "speedOverGround", "format": "knots"},
 		{"source": "network", "element": "speedThroughWater", "format": "knots"},
 		{"source": "network", "element": "apparentWindSpeed", "format": "knots"},
-		{"source": "network", "element": "apparentWindAngle", "format": "degrees"},
+		{"source": "network", "element": "apparentWindAngle", "format": "wind"},
     {"source": "network", "element": "heading", "format": "mag"},
 		{"source": "network", "element": "waypointRange", "format": "nm"},
 		{"source": "network", "element": "depthWithOffset", "format": "feet"},
