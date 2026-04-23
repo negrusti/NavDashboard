@@ -58,7 +58,7 @@ enum Property {
   rateOfTurn('Rate of turn', 'ROT', Dimension.angularRate),
   relativeHumidity('Relative Humidity', 'RH', Dimension.percentage),
   roll('Roll angle', 'Roll', Dimension.angle),
-  rudderAngle('Rudder angle', 'Rudder', Dimension.angle),
+  rudderAngle('Rudder angle', 'Rudder', Dimension.relativeAngle),
   speedOverGround('Speed over ground', 'SOG', Dimension.speed, sources: {Source.local, Source.network}),
   speedThroughWater('Speed through water', 'STW', Dimension.speed),
   trueWindAngle('True wind angle', 'TWA', Dimension.angle),

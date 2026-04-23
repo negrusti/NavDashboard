@@ -443,6 +443,38 @@ void main() {
         ]));
   });
 
+  test('should parse NMEA2000 rudder packet within valid range', () {
+    final packet = _makeNmea2000Packet(127245, [
+      0x01,
+      ..._i16(-5236),
+      0xFF,
+      0xFF,
+      0xFF,
+      0xFF,
+      0xFF,
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([
+          _boundSingleValue(-30.0001, Property.rudderAngle),
+        ]));
+  });
+
+  test('should ignore NMEA2000 rudder packet outside valid range', () {
+    final packet = _makeNmea2000Packet(127245, [
+      0x01,
+      ..._i16(17453),
+      0xFF,
+      0xFF,
+      0xFF,
+      0xFF,
+      0xFF,
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([]));
+  });
+
   test('should parse NMEA2000 COG/SOG packet', () {
     final packet = _makeNmea2000Packet(129026, [
       0x02,

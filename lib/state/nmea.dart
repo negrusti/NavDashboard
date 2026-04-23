@@ -246,7 +246,7 @@ List<BoundValue> _createNmea2000Values(int pgn, Uint8List payload) {
     case 127245:
       _validatePayloadLength(payload, 8);
       return [
-        _parseN2kAngle16(payload, 1, Property.rudderAngle),
+        _parseN2kRudderAngle16(payload, 1),
       ].whereNotNull().toList();
     case 127250:
       _validatePayloadLength(payload, 8);
@@ -602,6 +602,17 @@ BoundValue<SingleValue<double>>? _parseN2kAngle16(
   }
   return _boundSingleValue(_signedRadiansToDegrees(raw, 0.0001), property,
       tier: tier);
+}
+
+BoundValue<SingleValue<double>>? _parseN2kRudderAngle16(
+    Uint8List payload, int offset,
+    {int tier = 1}) {
+  final value = _parseN2kAngle16(payload, offset, Property.rudderAngle,
+      tier: tier);
+  if (value == null || value.value.data < -90.0 || value.value.data > 90.0) {
+    return null;
+  }
+  return value;
 }
 
 BoundValue<SingleValue<double>>? _parseN2kSpeed16(

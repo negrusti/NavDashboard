@@ -56,6 +56,17 @@ void main() {
     expect(format(359.6), equals('0'));
   });
 
+  test('rudder angles should be formatted as signed relative angles', () {
+    String format(double number) {
+      return formattersFor(Property.rudderAngle.dimension)['degrees']!
+          .format(SingleValue(number));
+    }
+
+    expect(format(-45.4), equals('-45'));
+    expect(format(0), equals('0'));
+    expect(format(45.4), equals('+45'));
+  });
+
   test('true wind angles should remain absolute angles', () {
     String format(double number) {
       return formattersFor(Property.trueWindAngle.dimension)['degrees']!
