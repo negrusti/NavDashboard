@@ -446,11 +446,9 @@ void main() {
   test('should parse NMEA2000 rudder packet within valid range', () {
     final packet = _makeNmea2000Packet(127245, [
       0x01,
+      0x00,
+      ..._i16(0),
       ..._i16(-5236),
-      0xFF,
-      0xFF,
-      0xFF,
-      0xFF,
       0xFF,
     ]);
     expect(
@@ -463,16 +461,30 @@ void main() {
   test('should ignore NMEA2000 rudder packet outside valid range', () {
     final packet = _makeNmea2000Packet(127245, [
       0x01,
+      0x00,
+      ..._i16(0),
       ..._i16(17453),
-      0xFF,
-      0xFF,
-      0xFF,
-      0xFF,
       0xFF,
     ]);
     expect(
         NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
         BoundValueListMatches([]));
+  });
+
+  test('should parse NMEA2000 rudder position rather than angle order', () {
+    final packet = _makeNmea2000Packet(127245, [
+      0x01,
+      0x00,
+      ..._i16(5236),
+      ..._i16(-2618),
+      0xFF,
+      0xFF,
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([
+          _boundSingleValue(-15.0001, Property.rudderAngle),
+        ]));
   });
 
   test('should parse NMEA2000 COG/SOG packet', () {
@@ -523,6 +535,23 @@ void main() {
         BoundValueListMatches([
           _boundSingleValue(12.34, Property.depthUncalibrated),
           _boundSingleValue(11.84, Property.depthWithOffset),
+        ]));
+  });
+
+  test('should parse NMEA2000 environmental parameters water temperature', () {
+    final packet = _makeNmea2000Packet(130310, [
+      0x01,
+      ..._u16(29355),
+      ..._u16(29815),
+      ..._u16(1013),
+      0xFF,
+    ]);
+    expect(
+        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
+        BoundValueListMatches([
+          _boundSingleValue(20.4, Property.waterTemperature),
+          _boundSingleValue(25.0, Property.airTemperature),
+          _boundSingleValue(101300.0, Property.pressure),
         ]));
   });
 

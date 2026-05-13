@@ -126,7 +126,9 @@ class _YAxis {
   }
 
   String format(double value) {
-    return value.toStringAsFixed(_formatDp);
+    final threshold = 0.5 / pow(10, _formatDp);
+    final normalized = value.abs() < threshold ? 0.0 : value;
+    return normalized.toStringAsFixed(_formatDp);
   }
 }
 

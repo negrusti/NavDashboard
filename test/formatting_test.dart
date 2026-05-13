@@ -26,6 +26,12 @@ void main() {
     expect(fmt.format(SingleValue<double>(12.3)), equals('24.600'));
   });
 
+  test('simple formatter should suppress negative zero', () {
+    final fmt = SimpleFormatter('test', '', 'invalid', 1.0, 1);
+    expect(fmt.format(SingleValue<double>(-0.0)), equals('0.0'));
+    expect(fmt.format(SingleValue<double>(-0.04)), equals('0.0'));
+  });
+
   test('simple formatter should convert to and from a number', () {
     final fmt = SimpleFormatter('test', '', 'invalid', 2.0, 3);
     expect(fmt.toNumber(SingleValue<double>(3.0)), equals(6.0));
@@ -63,6 +69,7 @@ void main() {
     }
 
     expect(format(-45.4), equals('-45'));
+    expect(format(-0.4), equals('0'));
     expect(format(0), equals('0'));
     expect(format(45.4), equals('+45'));
   });

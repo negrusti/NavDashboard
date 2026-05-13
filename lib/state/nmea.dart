@@ -246,7 +246,7 @@ List<BoundValue> _createNmea2000Values(int pgn, Uint8List payload) {
     case 127245:
       _validatePayloadLength(payload, 8);
       return [
-        _parseN2kRudderAngle16(payload, 1),
+        _parseN2kRudderAngle16(payload, 4),
       ].whereNotNull().toList();
     case 127250:
       _validatePayloadLength(payload, 8);

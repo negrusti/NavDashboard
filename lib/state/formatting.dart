@@ -33,6 +33,19 @@ Map<String, Formatter> formattersFor(Dimension? dimension) {
   return (dimension == null) ? {} : _formatters[dimension]!;
 }
 
+double _normalizeDisplayZero(double value, int dp) {
+  final threshold = 0.5 / _pow10(dp);
+  return value.abs() < threshold ? 0.0 : value;
+}
+
+double _pow10(int exponent) {
+  var result = 1.0;
+  for (var i = 0; i < exponent; i++) {
+    result *= 10.0;
+  }
+  return result;
+}
+
 /// A numeric formatter that is able to reverse conversion toNumber.
 abstract class ConvertingFormatter<V> extends NumericFormatter<V> {
   ConvertingFormatter(super.longName, super.units, {super.heightFraction});
@@ -68,7 +81,9 @@ class SimpleFormatter extends ConvertingFormatter<SingleValue<double>> {
   @override
   String format(SingleValue<double>? input) {
     final number = toNumber(input);
-    return (number == null) ? invalid : number.toStringAsFixed(dp);
+    return (number == null)
+        ? invalid
+        : _normalizeDisplayZero(number, dp).toStringAsFixed(dp);
   }
 }
 
@@ -307,6 +322,9 @@ double _relativeWindAngle(double angle) {
 
 String _signedAngleString(double number) {
   final rounded = number.round();
+  if (rounded == 0) {
+    return '0';
+  }
   if (rounded > 0) {
     return '+$rounded';
   }
