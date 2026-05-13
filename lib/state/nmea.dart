@@ -455,9 +455,9 @@ List<BoundValue> _createNmea2000Values(int pgn, Uint8List payload) {
     case 130310:
       _validatePayloadLength(payload, 8);
       return [
-        _parseN2kTemperatureScaled16(payload, 2, 0.01, Property.waterTemperature),
-        _parseN2kTemperatureScaled16(payload, 4, 0.01, Property.airTemperature),
-        _parseN2kPressureScaled16(payload, 6, 100, Property.pressure),
+        _parseN2kTemperatureScaled16(payload, 1, 0.01, Property.waterTemperature),
+        _parseN2kTemperatureScaled16(payload, 3, 0.01, Property.airTemperature),
+        _parseN2kPressureScaled16(payload, 5, 100, Property.pressure),
       ].whereNotNull().toList();
     case 130312:
     case 130316:

@@ -450,6 +450,7 @@ void main() {
       ..._i16(0),
       ..._i16(-5236),
       0xFF,
+      0xFF,
     ]);
     expect(
         NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
@@ -464,6 +465,7 @@ void main() {
       0x00,
       ..._i16(0),
       ..._i16(17453),
+      0xFF,
       0xFF,
     ]);
     expect(
