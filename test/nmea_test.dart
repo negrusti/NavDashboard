@@ -460,6 +460,7 @@ void main() {
   });
 
   test('should ignore NMEA2000 rudder packet outside valid range', () {
+    final parser = NmeaParser(true, NetworkProtocol.nmea2000Assembled);
     final packet = _makeNmea2000Packet(127245, [
       0x01,
       0x00,
@@ -468,9 +469,10 @@ void main() {
       0xFF,
       0xFF,
     ]);
-    expect(
-        NmeaParser(true, NetworkProtocol.nmea2000Assembled).parsePacket(packet),
-        BoundValueListMatches([]));
+    expect(() => parser.parsePacket(packet), throwsFormatException);
+    expect(parser.emptyCounts.total, 1);
+    expect(parser.parsePacket(packet), BoundValueListMatches([]));
+    expect(parser.emptyCounts.total, 2);
   });
 
   test('should parse NMEA2000 rudder position rather than angle order', () {
