@@ -60,13 +60,7 @@ jobs:
         id: get_version
         run: |
           version=$(grep '^version:' pubspec.yaml | awk '{print $2}')
-          version_name="${version%%+*}"
-          build_number="${version#*+}"
-          if [ "$build_number" = "$version" ]; then
-            release_tag="v$version_name"
-          else
-            release_tag="v${version_name}-build.${build_number}"
-          fi
+          release_tag="v$version"
           echo "version=$version" >> $GITHUB_ENV
           echo "release_tag=$release_tag" >> $GITHUB_ENV
           echo "Version extracted: $version"
